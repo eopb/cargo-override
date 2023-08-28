@@ -35,3 +35,4 @@ I'm planning on using
 - clap
 - toml_edit
 - cargo-util
+- human-panic
