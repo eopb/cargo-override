@@ -1,12 +1,11 @@
-use clap::Parser;
+use std::env::current_dir;
 
-/// Simple program to greet a person
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-struct Args {
-    source: String,
-}
+use cargo_override::{run, Args};
+
+use clap::Parser;
 
 fn main() {
     let args = Args::parse();
+
+    run(&current_dir().unwrap(), args);
 }
