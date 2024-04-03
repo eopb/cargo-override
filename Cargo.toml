@@ -12,4 +12,5 @@ clap = { version = "4.4.4", features = ["derive"] }
 
 [dev-dependencies]
 fake = "2.9.2"
+googletest = "0.11.0"
 tempfile = "3.10.1"

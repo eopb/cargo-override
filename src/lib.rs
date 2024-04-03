@@ -9,4 +9,6 @@ pub struct Args {
     pub path: String,
 }
 
-pub fn run(_working_dir: &Path, _args: Args) {}
+pub fn run(_working_dir: &Path, _args: Args) -> Result<(), ()> {
+    Ok(())
+}

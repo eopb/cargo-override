@@ -7,5 +7,7 @@ use clap::Parser;
 fn main() {
     let args = Args::parse();
 
-    run(&current_dir().unwrap(), args);
+    if let Err(_) = run(&current_dir().unwrap(), args) {
+        todo!()
+    }
 }

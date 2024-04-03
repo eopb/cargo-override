@@ -3,9 +3,13 @@ use std::fs;
 use cargo_override::{run, Args};
 
 use fake::{Fake, Faker};
+use googletest::{
+    expect_that,
+    matchers::{eq, err, ok},
+};
 use tempfile::TempDir;
 
-#[test]
+#[googletest::test]
 fn patch_path_exists() {
     let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();
@@ -15,16 +19,17 @@ fn patch_path_exists() {
 
     fs::create_dir(patch_folder_path).expect("failed to create patch folder");
 
-    run(working_dir, Args { path: patch_folder })
+    let result = run(working_dir, Args { path: patch_folder });
+    expect_that!(result, ok(eq(())))
 }
 
-#[test]
-#[should_panic]
+#[googletest::test]
 fn patch_path_doesnt_exist() {
     let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();
 
     let patch_folder: String = Faker.fake();
 
-    run(working_dir, Args { path: patch_folder })
+    let result = run(working_dir, Args { path: patch_folder });
+    expect_that!(result, err(eq(())))
 }
