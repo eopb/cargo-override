@@ -17,3 +17,14 @@ fn patch_path_exists() {
 
     run(working_dir, Args { path: patch_folder })
 }
+
+#[test]
+#[should_panic]
+fn patch_path_doesnt_exist() {
+    let working_dir = TempDir::new().unwrap();
+    let working_dir = working_dir.path();
+
+    let patch_folder: String = Faker.fake();
+
+    run(working_dir, Args { path: patch_folder })
+}
