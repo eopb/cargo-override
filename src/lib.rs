@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use clap::Parser;
 
 #[derive(Parser, Debug)]
@@ -7,4 +9,4 @@ pub struct Args {
     path: String,
 }
 
-pub fn run(args: Args) {}
+pub fn run(_working_dir: &Path, _args: Args) {}
