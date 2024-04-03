@@ -9,3 +9,7 @@ description = "Work-in-progress"
 
 [dependencies]
 clap = { version = "4.4.4", features = ["derive"] }
+
+[dev-dependencies]
+fake = "2.9.2"
+tempfile = "3.10.1"

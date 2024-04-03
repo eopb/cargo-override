@@ -6,7 +6,7 @@ use clap::Parser;
 #[command(author, version, about, long_about = None)]
 pub struct Args {
     #[arg(short, long)]
-    path: String,
+    pub path: String,
 }
 
 pub fn run(_working_dir: &Path, _args: Args) {}
