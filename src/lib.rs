@@ -1,10 +1,13 @@
 use std::{
+    fs,
     ops::Not,
     path::{Path, PathBuf},
 };
 
-use anyhow::bail;
+use anyhow::{bail, Context};
 use clap::Parser;
+
+static DEFAULT_REGISTRY: &str = "crates-io";
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -15,9 +18,52 @@ pub struct Args {
 
 pub fn run(working_dir: &Path, args: Args) -> anyhow::Result<()> {
     let _patch_manifest = patch_manifest(working_dir, &args.path)?;
-    let _project_manifest = project_manifest(working_dir)?;
+
+    let project_manifest = project_manifest(working_dir)?;
+
+    let project_manifest_content =
+        fs::read_to_string(&project_manifest).context("failed to read patch manifest")?;
+
+    let mut project_manifest_toml: toml_edit::DocumentMut = project_manifest_content
+        .parse()
+        .context("patch manifest contains invalid toml")?;
+
+    let project_manifest_toml = project_manifest_toml.as_table_mut();
+
+    let project_patches = create_subtable(project_manifest_toml, "patch")?;
+    let mut project_overrides = create_subtable(project_patches, DEFAULT_REGISTRY)?;
+
+    let Ok(new_patch) = format!("{{ path= \"{}\" }}", args.path).parse::<toml_edit::Item>() else {
+        todo!("We haven't escaped the path so we can't be sure this will parse")
+    };
+
+    toml_edit::Table::insert(&mut project_overrides, "anyhow", new_patch);
+
+    // TODO: handle error
+    let _ = fs::write(&project_manifest, project_manifest_toml.to_string());
 
     Ok(())
+}
+
+fn create_subtable<'a>(
+    table: &'a mut toml_edit::Table,
+    name: &str,
+) -> anyhow::Result<&'a mut toml_edit::Table> {
+    let existing = &mut table[name];
+
+    if existing.is_none() {
+        // If the table does not exist, create it
+        *existing = toml_edit::Item::Table(toml_edit::Table::new());
+    }
+
+    // TODO: in the future we may be able to do cool things with miette
+    let _span = existing.span();
+
+    let Some(subtable) = existing.as_table_mut() else {
+        bail!("{name} already exists but is not a table")
+    };
+
+    Ok(subtable)
 }
 
 fn patch_manifest(working_dir: &Path, patch_path: &str) -> anyhow::Result<PathBuf> {

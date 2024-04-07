@@ -10,8 +10,10 @@ description = "Work-in-progress"
 [dependencies]
 anyhow = "1.0.81"
 clap = { version = "4.4.4", features = ["derive"] }
+toml_edit = "0.22.9"
 
 [dev-dependencies]
 fake = "2.9.2"
 googletest = "0.11.0"
+insta = { version = "1.38.0", features = ["toml"] }
 tempfile = "3.10.1"

@@ -1,4 +1,8 @@
-use std::{fs, fs::File, io::Write};
+use std::{
+    fs::{self, File},
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 use cargo_override::{run, Args};
 
@@ -19,20 +23,62 @@ fn patch_exists() {
 
     fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
 
-    let patch_manifest = patch_folder_path.join("Cargo.toml");
-    let _patch_manifest =
-        File::create_new(&patch_manifest).expect("failed to create patch manifest file");
-
-    let manifest = working_dir.join("Cargo.toml");
-    {
-        let mut manifest = File::create_new(&manifest).expect("failed to create manifest file");
-        manifest
-            .write_all(include_bytes!("fixture/basic.toml"))
-            .expect("failed to write manifest file");
-    }
+    let manifest = create_manifest(working_dir, "");
+    create_manifest(&patch_folder_path, "");
 
     let result = run(working_dir, Args { path: patch_folder });
-    expect_that!(result, ok(eq(())))
+    expect_that!(result, ok(eq(())));
+
+    let manifest = fs::read_to_string(manifest).unwrap();
+
+    insta::assert_toml_snapshot!(manifest);
+}
+
+fn create_manifest(dir: &Path, content: &str) -> PathBuf {
+    let manifest_path = dir.join("Cargo.toml");
+    let mut manifest = File::create_new(&manifest_path).expect("failed to create manifest file");
+    manifest
+        .write_all(content.as_bytes())
+        .expect("failed to write manifest file");
+    drop(manifest);
+    manifest_path
+}
+
+fn manifest_header(crate_name: &str) -> String {
+    format!(
+        "[package]
+        name = \"{crate_name}\"
+        version = \"0.1.0\"
+        edition = \"2021\"
+
+        # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+        "
+    )
+}
+
+struct Patch<'a> {
+    name: &'a str,
+    path: &'a str,
+}
+
+struct PatchSet<'a> {
+    registry: &'a str,
+    patches: &'a [Patch<'a>],
+}
+
+impl<'a> PatchSet<'a> {
+    fn format_1(&self) -> String {
+        todo!()
+        // [patch.crates-io]
+        // uuid = { path = '../uuid' }
+        // uuid = { path = '../uuid' }
+    }
+    fn format_2(&self) -> String {
+        todo!()
+        // [patch]
+        // crates-io.uuid = { path = '../uuid' }
+        // crates-io.uuid = { path = '../uuid' }
+    }
 }
 
 #[googletest::test]
