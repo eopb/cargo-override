@@ -5,7 +5,7 @@ use cargo_override::{run, Args};
 use fake::{Fake, Faker};
 use googletest::{
     expect_that,
-    matchers::{eq, err, ok},
+    matchers::{displays_as, eq, err, ok},
 };
 use tempfile::TempDir;
 
@@ -30,6 +30,18 @@ fn patch_path_doesnt_exist() {
 
     let patch_folder: String = Faker.fake();
 
-    let result = run(working_dir, Args { path: patch_folder });
-    expect_that!(result, err(eq(())))
+    let result = run(
+        working_dir,
+        Args {
+            path: patch_folder.clone(),
+        },
+    );
+
+    expect_that!(
+        result,
+        err(displays_as(eq(format!(
+            "relative path \"{}\" is not a directory",
+            patch_folder
+        ))))
+    )
 }

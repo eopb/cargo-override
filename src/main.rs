@@ -7,7 +7,7 @@ use clap::Parser;
 fn main() {
     let args = Args::parse();
 
-    if let Err(_) = run(&current_dir().unwrap(), args) {
-        todo!()
+    if let Err(e) = run(&current_dir().unwrap(), args) {
+        eprintln!("error: {e}");
     }
 }

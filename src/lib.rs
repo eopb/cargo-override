@@ -1,5 +1,6 @@
-use std::path::Path;
+use std::{ops::Not, path::Path};
 
+use anyhow::bail;
 use clap::Parser;
 
 #[derive(Parser, Debug)]
@@ -9,6 +10,12 @@ pub struct Args {
     pub path: String,
 }
 
-pub fn run(_working_dir: &Path, _args: Args) -> Result<(), ()> {
+pub fn run(working_dir: &Path, args: Args) -> anyhow::Result<()> {
+    let patch_workspace = working_dir.join(&args.path);
+
+    if patch_workspace.is_dir().not() {
+        bail!("relative path \"{}\" is not a directory", args.path);
+    }
+
     Ok(())
 }
