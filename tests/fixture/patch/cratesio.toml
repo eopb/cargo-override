@@ -1,0 +1,3 @@
+[patch.crates-io]
+uuid = { git = 'https://github.com/uuid-rs/uuid.git' }
+
