@@ -1,6 +1,5 @@
 ---
 source: tests/tests.rs
-assertion_line: 38
 expression: manifest
 ---
 '''
@@ -12,6 +11,6 @@ edition = "2021"
 [patch]
 
 [patch.crates-io]
-anyhow = { path= "Axr6k5kEWqE3PJRpb" }
+anyhow = { path= "8uGhJPpzrNGi" }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 '''

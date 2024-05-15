@@ -23,36 +23,39 @@ fn patch_exists() {
 
     fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
 
-    let manifest = create_manifest(working_dir, "");
-    create_manifest(&patch_folder_path, "");
+    let working_dir_manifest_path =
+        create_cargo_manifest(working_dir, &manifest_header("test-package"));
+    let _patch_manifest_path =
+        create_cargo_manifest(&patch_folder_path, &manifest_header("patch-package"));
 
     let result = run(working_dir, Args { path: patch_folder });
     expect_that!(result, ok(eq(())));
 
-    let manifest = fs::read_to_string(manifest).unwrap();
+    let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
+
+    println!("***DEBUG: manifest content: {}", manifest);
 
     insta::assert_toml_snapshot!(manifest);
 }
 
-fn create_manifest(dir: &Path, content: &str) -> PathBuf {
+fn create_cargo_manifest(dir: &Path, content: &str) -> PathBuf {
     let manifest_path = dir.join("Cargo.toml");
     let mut manifest = File::create_new(&manifest_path).expect("failed to create manifest file");
     manifest
         .write_all(content.as_bytes())
         .expect("failed to write manifest file");
-    drop(manifest);
+    manifest.flush().expect("failed to flush manifest file");
     manifest_path
 }
 
 fn manifest_header(crate_name: &str) -> String {
     format!(
         "[package]
-        name = \"{crate_name}\"
-        version = \"0.1.0\"
-        edition = \"2021\"
-
-        # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-        "
+name = \"{crate_name}\"
+version = \"0.1.0\"
+edition = \"2021\"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+"
     )
 }
 
