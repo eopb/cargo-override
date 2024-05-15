@@ -18,7 +18,7 @@ fn patch_exists() {
     let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();
 
-    let patch_folder: String = Faker.fake();
+    let patch_folder = "u9KdJGBDefkZz";
     let patch_folder_path = working_dir.join(&patch_folder);
 
     fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
@@ -28,7 +28,12 @@ fn patch_exists() {
     let _patch_manifest_path =
         create_cargo_manifest(&patch_folder_path, &manifest_header("patch-package"));
 
-    let result = run(working_dir, Args { path: patch_folder });
+    let result = run(
+        working_dir,
+        Args {
+            path: patch_folder.to_string(),
+        },
+    );
     expect_that!(result, ok(eq(())));
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
