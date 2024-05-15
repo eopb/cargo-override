@@ -33,8 +33,6 @@ fn patch_exists() {
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
-    println!("***DEBUG: manifest content: {}", manifest);
-
     insta::assert_toml_snapshot!(manifest);
 }
 
