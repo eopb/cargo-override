@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use cargo_override::{run, Args};
+use cargo_override::{run, Args, CARGO_TOML};
 
 use fake::{Fake, Faker};
 use googletest::{
@@ -37,7 +37,7 @@ fn patch_exists() {
 }
 
 fn create_cargo_manifest(dir: &Path, content: &str) -> PathBuf {
-    let manifest_path = dir.join("Cargo.toml");
+    let manifest_path = dir.join(CARGO_TOML);
     let mut manifest = File::create_new(&manifest_path).expect("failed to create manifest file");
     manifest
         .write_all(content.as_bytes())
@@ -92,9 +92,9 @@ fn missing_manifest() {
 
     fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
 
-    let patch_manifest = patch_folder_path.join(&"Cargo.toml");
+    let patch_manifest = patch_folder_path.join(CARGO_TOML);
 
-    File::create_new(&patch_manifest).expect("failed to create patch manifest file");
+    File::create_new(patch_manifest).expect("failed to create patch manifest file");
 
     let result = run(working_dir, Args { path: patch_folder });
 
