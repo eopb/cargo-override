@@ -19,7 +19,7 @@ fn patch_exists() {
     let working_dir = working_dir.path();
 
     let patch_folder = "u9KdJGBDefkZz";
-    let patch_folder_path = working_dir.join(&patch_folder);
+    let patch_folder_path = working_dir.join(patch_folder);
 
     fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
 
@@ -63,16 +63,19 @@ edition = \"2021\"
     )
 }
 
+#[allow(dead_code)]
 struct Patch<'a> {
     name: &'a str,
     path: &'a str,
 }
 
+#[allow(dead_code)]
 struct PatchSet<'a> {
     registry: &'a str,
     patches: &'a [Patch<'a>],
 }
 
+#[allow(dead_code)]
 impl<'a> PatchSet<'a> {
     fn format_1(&self) -> String {
         todo!()
