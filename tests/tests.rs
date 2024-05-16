@@ -1,3 +1,5 @@
+mod manifest;
+
 use std::{
     fmt::Write as _,
     fs::{self, File},

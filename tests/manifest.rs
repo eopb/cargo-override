@@ -1,0 +1,178 @@
+use std::fmt::Write as _;
+
+/// Builder for project manifests used for testing
+pub struct Manifest {
+    header: Header,
+    dependencies: Dependencies,
+}
+
+impl Manifest {
+    pub fn new(header: Header) -> Self {
+        Self {
+            header,
+            dependencies: Dependencies::new(),
+        }
+    }
+    pub fn add_dependency(mut self, dependency: Dependency) -> Self {
+        self.dependencies.add(dependency);
+        self
+    }
+    pub fn render(self) -> String {
+        let Self {
+            header,
+            dependencies,
+        } = self;
+
+        let mut w = String::new();
+
+        writeln!(w, "{}", header.render()).unwrap();
+        write!(w, "{}", dependencies.render()).unwrap();
+        w
+    }
+}
+
+pub struct Header {
+    name: Option<String>,
+    version: Option<String>,
+    edition: Option<String>,
+    default_comment: bool,
+}
+
+impl Header {
+    pub fn basic(name: impl AsRef<str>) -> Self {
+        Self {
+            name: Some(name.as_ref().to_owned()),
+            version: Some("0.1.0".to_owned()),
+            edition: Some("2021".to_owned()),
+            default_comment: true,
+        }
+    }
+    pub fn _name(&mut self, name: impl Into<Option<String>>) {
+        self.name = name.into();
+    }
+    pub fn _version(&mut self, version: impl Into<Option<String>>) {
+        self.version = version.into();
+    }
+    pub fn _edition(&mut self, edition: impl Into<Option<String>>) {
+        self.edition = edition.into();
+    }
+    pub fn _default_comment(&mut self, enable: bool) {
+        self.default_comment = enable;
+    }
+    pub fn render(self) -> String {
+        let Self {
+            name,
+            version,
+            edition,
+            default_comment,
+        } = self;
+
+        let mut w = String::new();
+
+        writeln!(w, "[package]").unwrap();
+        if let Some(name) = name {
+            writeln!(w, "name = \"{name}\"").unwrap();
+        }
+        if let Some(version) = version {
+            writeln!(w, "version = \"{version}\"").unwrap();
+        }
+        if let Some(edition) = edition {
+            writeln!(w, "edition = \"{edition}\"").unwrap();
+        }
+        if default_comment {
+            writeln!(w).unwrap();
+            writeln!(w, "# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html").unwrap();
+        }
+
+        w
+    }
+}
+
+struct Dependencies(Vec<Dependency>);
+
+impl Dependencies {
+    fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    fn add(&mut self, dependency: Dependency) {
+        self.0.push(dependency);
+    }
+
+    fn render(self) -> String {
+        let Self(dependencies) = self;
+
+        let mut f = String::new();
+        if dependencies.len() > 0 {
+            writeln!(f, "[dependencies]").unwrap();
+        }
+        for dep in dependencies {
+            writeln!(f, "{}", dep.render()).unwrap();
+        }
+        f
+    }
+}
+
+pub struct Dependency {
+    name: String,
+    version: String,
+}
+
+impl Dependency {
+    pub fn new(name: impl AsRef<str>, version: impl AsRef<str>) -> Dependency {
+        Dependency {
+            name: name.as_ref().to_owned(),
+            version: version.as_ref().to_owned(),
+        }
+    }
+
+    fn render(self) -> String {
+        let Self { name, version } = self;
+
+        format!("{name} = \"{version}\"")
+    }
+}
+
+#[test]
+fn manifest_with_deps() {
+    let header = Header::basic("package-name");
+
+    let manifest = Manifest::new(header)
+        .add_dependency(Dependency::new("rand", "0.8"))
+        .add_dependency(Dependency::new("redact", "0.1.10"))
+        .render();
+
+    insta::assert_toml_snapshot!(manifest, @r###"
+    '''
+    [package]
+    name = "package-name"
+    version = "0.1.0"
+    edition = "2021"
+
+    # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+    [dependencies]
+    rand = "0.8"
+    redact = "0.1.10"
+    '''
+    "###);
+}
+
+#[test]
+fn basic_manifest() {
+    let header = Header::basic("package-name");
+
+    let manifest = Manifest::new(header).render();
+
+    insta::assert_toml_snapshot!(manifest, @r###"
+    '''
+    [package]
+    name = "package-name"
+    version = "0.1.0"
+    edition = "2021"
+
+    # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+    '''
+    "###);
+}
