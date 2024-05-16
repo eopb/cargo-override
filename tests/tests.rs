@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use cargo_override::{run, Args};
+use cargo_override::{run, Args, CARGO_TOML};
 
 use fake::{Fake, Faker};
 use googletest::{
@@ -18,41 +18,48 @@ fn patch_exists() {
     let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();
 
-    let patch_folder: String = Faker.fake();
+    let patch_folder = "u9KdJGBDefkZz";
     let patch_folder_path = working_dir.join(&patch_folder);
 
     fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
 
-    let manifest = create_manifest(working_dir, "");
-    create_manifest(&patch_folder_path, "");
+    let working_dir_manifest_path =
+        create_cargo_manifest(working_dir, &manifest_header("test-package"));
+    let _patch_manifest_path =
+        create_cargo_manifest(&patch_folder_path, &manifest_header("patch-package"));
 
-    let result = run(working_dir, Args { path: patch_folder });
+    let result = run(
+        working_dir,
+        Args {
+            path: patch_folder.to_string(),
+        },
+    );
     expect_that!(result, ok(eq(())));
 
-    let manifest = fs::read_to_string(manifest).unwrap();
+    let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
     insta::assert_toml_snapshot!(manifest);
 }
 
-fn create_manifest(dir: &Path, content: &str) -> PathBuf {
-    let manifest_path = dir.join("Cargo.toml");
+fn create_cargo_manifest(dir: &Path, content: &str) -> PathBuf {
+    let manifest_path = dir.join(CARGO_TOML);
     let mut manifest = File::create_new(&manifest_path).expect("failed to create manifest file");
     manifest
         .write_all(content.as_bytes())
         .expect("failed to write manifest file");
-    drop(manifest);
+    manifest.flush().expect("failed to flush manifest file");
     manifest_path
 }
 
 fn manifest_header(crate_name: &str) -> String {
     format!(
         "[package]
-        name = \"{crate_name}\"
-        version = \"0.1.0\"
-        edition = \"2021\"
+name = \"{crate_name}\"
+version = \"0.1.0\"
+edition = \"2021\"
 
-        # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-        "
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+"
     )
 }
 
@@ -91,9 +98,9 @@ fn missing_manifest() {
 
     fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
 
-    let patch_manifest = patch_folder_path.join(&"Cargo.toml");
+    let patch_manifest = patch_folder_path.join(CARGO_TOML);
 
-    File::create_new(&patch_manifest).expect("failed to create patch manifest file");
+    File::create_new(patch_manifest).expect("failed to create patch manifest file");
 
     let result = run(working_dir, Args { path: patch_folder });
 

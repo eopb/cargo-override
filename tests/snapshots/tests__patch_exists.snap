@@ -1,0 +1,17 @@
+---
+source: tests/tests.rs
+expression: manifest
+---
+'''
+[package]
+name = "test-package"
+version = "0.1.0"
+edition = "2021"
+
+[patch]
+
+[patch.crates-io]
+patch-package = { path= "u9KdJGBDefkZz" }
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+'''

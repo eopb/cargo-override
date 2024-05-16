@@ -1,6 +1,0 @@
----
-source: tests/tests.rs
-assertion_line: 34
-expression: manifest
----
-''
