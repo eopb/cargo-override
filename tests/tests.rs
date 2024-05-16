@@ -110,34 +110,6 @@ fn manifest_dependencies(dependencies: Vec<(String, String)> /* name, version */
     f
 }
 
-#[allow(dead_code)]
-struct Patch<'a> {
-    name: &'a str,
-    path: &'a str,
-}
-
-#[allow(dead_code)]
-struct PatchSet<'a> {
-    registry: &'a str,
-    patches: &'a [Patch<'a>],
-}
-
-#[allow(dead_code)]
-impl<'a> PatchSet<'a> {
-    fn format_1(&self) -> String {
-        todo!()
-        // [patch.crates-io]
-        // uuid = { path = '../uuid' }
-        // uuid = { path = '../uuid' }
-    }
-    fn format_2(&self) -> String {
-        todo!()
-        // [patch]
-        // crates-io.uuid = { path = '../uuid' }
-        // crates-io.uuid = { path = '../uuid' }
-    }
-}
-
 #[googletest::test]
 fn missing_manifest() {
     let working_dir = TempDir::new().unwrap();
