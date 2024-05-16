@@ -35,7 +35,7 @@ pub fn run(working_dir: &Path, args: Args) -> anyhow::Result<()> {
 
     let project_patch_overrides_table = create_subtable(project_patch_table, DEFAULT_REGISTRY)?;
 
-    let Ok(new_patch) = format!("{{ path= \"{}\" }}", args.path).parse::<toml_edit::Item>() else {
+    let Ok(new_patch) = format!("{{ path = \"{}\" }}", args.path).parse::<toml_edit::Item>() else {
         todo!("We haven't escaped the path so we can't be sure this will parse")
     };
 
