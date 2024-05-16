@@ -49,7 +49,24 @@ fn patch_exists() {
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
-    insta::assert_toml_snapshot!(manifest);
+    insta::assert_toml_snapshot!(manifest, @r###"
+    '''
+    [package]
+    name = "package-name"
+    version = "0.1.0"
+    edition = "2021"
+
+    # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+    [dependencies]
+    patch-package = "0.1.0"
+
+    [patch]
+
+    [patch.crates-io]
+    patch-package = { path = "u9KdJGBDefkZz" }
+    '''
+    "###);
 }
 
 /// When we add a patch we want to make sure that we're actually depending on the dependency we're
