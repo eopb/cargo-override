@@ -1,7 +1,8 @@
 mod manifest;
 
+use manifest::{Dependency, Header, Manifest};
+
 use std::{
-    fmt::Write as _,
     fs::{self, File},
     io::Write,
     path::{Path, PathBuf},
@@ -27,16 +28,16 @@ fn patch_exists() {
 
     fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
 
-    let mut manifest = manifest_header("test-package");
-
-    manifest.push_str(&manifest_dependencies(vec![(
-        patch_crate_name.to_owned(),
-        "0.1.0".to_owned(),
-    )]));
+    let manifest_header = Header::basic("package-name");
+    let manifest = Manifest::new(manifest_header)
+        .add_dependency(Dependency::new(patch_crate_name, "0.1.0"))
+        .render();
 
     let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
-    let _patch_manifest_path =
-        create_cargo_manifest(&patch_folder_path, &manifest_header(&patch_crate_name));
+    let _patch_manifest_path = create_cargo_manifest(
+        &patch_folder_path,
+        &Manifest::new(Header::basic(patch_crate_name)).render(),
+    );
 
     let result = run(
         working_dir,
@@ -65,10 +66,14 @@ fn patch_exists_put_project_does_not_have_dep() {
 
     fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
 
-    let _working_dir_manifest_path =
-        create_cargo_manifest(working_dir, &manifest_header("test-package"));
-    let _patch_manifest_path =
-        create_cargo_manifest(&patch_folder_path, &manifest_header("patch-package"));
+    let _working_dir_manifest_path = create_cargo_manifest(
+        working_dir,
+        &Manifest::new(Header::basic("test-package")).render(),
+    );
+    let _patch_manifest_path = create_cargo_manifest(
+        &patch_folder_path,
+        &Manifest::new(Header::basic("patch-package")).render(),
+    );
 
     let result = run(
         working_dir,
@@ -87,27 +92,6 @@ fn create_cargo_manifest(dir: &Path, content: &str) -> PathBuf {
         .expect("failed to write manifest file");
     manifest.flush().expect("failed to flush manifest file");
     manifest_path
-}
-
-fn manifest_header(crate_name: &str) -> String {
-    format!(
-        "[package]
-name = \"{crate_name}\"
-version = \"0.1.0\"
-edition = \"2021\"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-"
-    )
-}
-
-fn manifest_dependencies(dependencies: Vec<(String, String)> /* name, version */) -> String {
-    let mut f = String::new();
-    writeln!(f, "[dependencies]").unwrap();
-    for (name, version) in dependencies {
-        writeln!(f, "{name} = \"{version}\"").unwrap();
-    }
-    f
 }
 
 #[googletest::test]
