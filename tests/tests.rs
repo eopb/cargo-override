@@ -33,7 +33,7 @@ fn patch_exists() {
     let manifest_header = Header::basic(package_name);
     let manifest = Manifest::new(manifest_header)
         // Hack: cargo metadata fails if manifest doesn't contain [[bin]] or [lib] secion
-        .add_bin(Bin::new(package_name))
+        .add_bin(Bin::new(package_name, "src/main.rs"))
         .add_dependency(Dependency::new(patch_crate_name, "1.0.86"))
         .render();
 

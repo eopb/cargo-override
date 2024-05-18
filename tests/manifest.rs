@@ -129,21 +129,23 @@ impl Dependencies {
 
 pub struct Bin {
     name: String,
+    path: String,
 }
 
 impl Bin {
-    pub fn new(name: impl AsRef<str>) -> Self {
+    pub fn new(name: impl AsRef<str>, path: impl AsRef<str>) -> Self {
         Self {
             name: name.as_ref().to_owned(),
+            path: path.as_ref().to_owned(),
         }
     }
 
     pub fn render(self) -> String {
         let mut w = String::new();
-        writeln!(w, "").unwrap();
+        writeln!(w).unwrap();
         writeln!(w, "[[bin]]").unwrap();
         writeln!(w, "name = \"{0}\"", self.name).unwrap();
-        writeln!(w, "path = \"src/main.rs\"").unwrap();
+        writeln!(w, "path = \"{0}\"", self.path).unwrap();
         w
     }
 }
