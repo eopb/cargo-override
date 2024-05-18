@@ -79,7 +79,7 @@ fn patch_exists_put_project_does_not_have_dep() {
     let working_dir = working_dir.path();
 
     let patch_folder = "u9KdJGBDefkZz";
-    let patch_folder_path = working_dir.join(&patch_folder);
+    let patch_folder_path = working_dir.join(patch_folder);
 
     fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
 
