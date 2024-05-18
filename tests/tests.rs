@@ -68,8 +68,6 @@ fn patch_exists() {
     name = "package-name"
     path = "src/main.rs"
 
-    [patch]
-
     [patch.crates-io]
     anyhow = { path = "anyhow" }
     '''
