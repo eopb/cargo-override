@@ -22,6 +22,7 @@ fn patch_exists() {
     let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();
 
+    // Hack: Had to use real crate for cargo metadata to work
     let patch_crate_name = "anyhow";
     let patch_folder = format!("./{}", patch_crate_name);
     let patch_folder_path = working_dir.join(patch_folder.clone());
