@@ -71,7 +71,7 @@ fn patch_exists() {
     [patch]
 
     [patch.crates-io]
-    anyhow = { path = "./anyhow" }
+    anyhow = { path = "anyhow" }
     '''
     "###);
 }
