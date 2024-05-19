@@ -79,8 +79,6 @@ fn patch_exists() {
 /// When we add a patch we want to make sure that we're actually depending on the dependency we're
 /// patching.
 #[googletest::test]
-// #[should_panic] // This shouldn't panic but having random test failures is annoying.
-// Remove this line when the code is fixed to pass this test
 fn patch_exists_put_project_does_not_have_dep() {
     let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();
