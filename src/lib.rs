@@ -73,7 +73,7 @@ fn get_project_dependencies(
     cmd.manifest_path(project_manifest_path);
     let metadata = cmd
         .exec()
-        .map_err(|err| anyhow::anyhow!("Error running cargo metadata command: {}", err))?;
+        .context("Unable to run `cargo metadata`")?;
 
     let root_package = metadata.root_package().unwrap();
 
