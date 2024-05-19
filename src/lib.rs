@@ -32,9 +32,10 @@ pub fn run(working_dir: &Path, args: Args) -> anyhow::Result<()> {
 
     let project_manifest_table = project_manifest_toml.as_table_mut();
 
-    let project_patch_table = create_subtable(project_manifest_table, "patch")?;
+    let project_patch_table = create_subtable(project_manifest_table, "patch", true)?;
 
-    let project_patch_overrides_table = create_subtable(project_patch_table, DEFAULT_REGISTRY)?;
+    let project_patch_overrides_table =
+        create_subtable(project_patch_table, DEFAULT_REGISTRY, false)?;
 
     let Ok(new_patch) = format!("{{ path = \"{}\" }}", args.path).parse::<toml_edit::Item>() else {
         todo!("We haven't escaped the path so we can't be sure this will parse")
@@ -81,6 +82,7 @@ fn get_project_dependencies(
 fn create_subtable<'a>(
     table: &'a mut toml_edit::Table,
     name: &str,
+    dotted: bool,
 ) -> anyhow::Result<&'a mut toml_edit::Table> {
     let existing = &mut table[name];
 
@@ -95,6 +97,8 @@ fn create_subtable<'a>(
     let Some(subtable) = existing.as_table_mut() else {
         bail!("{name} already exists but is not a table")
     };
+
+    subtable.set_dotted(dotted);
 
     Ok(subtable)
 }
