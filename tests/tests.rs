@@ -23,7 +23,7 @@ fn patch_exists() {
     let working_dir = working_dir.path();
 
     let patch_crate_name = "anyhow";
-    let patch_folder = format!("{}", patch_crate_name);
+    let patch_folder = patch_crate_name.to_string();
     let patch_folder_path = working_dir.join(patch_folder.clone());
 
     fs::create_dir(&patch_folder_path).expect("failed to create patch folder");

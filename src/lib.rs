@@ -71,9 +71,7 @@ fn get_project_dependencies(
 ) -> Result<Vec<Dependency>, anyhow::Error> {
     let mut cmd = cargo_metadata::MetadataCommand::new();
     cmd.manifest_path(project_manifest_path);
-    let metadata = cmd
-        .exec()
-        .context("Unable to run `cargo metadata`")?;
+    let metadata = cmd.exec().context("Unable to run `cargo metadata`")?;
 
     let root_package = metadata.root_package().unwrap();
 
