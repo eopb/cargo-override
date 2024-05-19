@@ -1,6 +1,6 @@
 mod manifest;
 
-use manifest::{Dependency, Header, Manifest};
+use manifest::{Bin, Dependency, Header, Manifest};
 
 use std::{
     fs::{self, File},
@@ -22,15 +22,18 @@ fn patch_exists() {
     let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();
 
-    let patch_folder = "u9KdJGBDefkZz";
-    let patch_folder_path = working_dir.join(patch_folder);
-    let patch_crate_name = "patch-package";
+    let patch_crate_name = "anyhow";
+    let patch_folder = patch_crate_name.to_string();
+    let patch_folder_path = working_dir.join(patch_folder.clone());
 
     fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
 
-    let manifest_header = Header::basic("package-name");
+    let package_name = "package-name";
+    let manifest_header = Header::basic(package_name);
     let manifest = Manifest::new(manifest_header)
-        .add_dependency(Dependency::new(patch_crate_name, "0.1.0"))
+        // Hack: cargo metadata fails if manifest doesn't contain [[bin]] or [lib] secion
+        .add_bin(Bin::new(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new(patch_crate_name, "1.0.86"))
         .render();
 
     let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
@@ -59,12 +62,16 @@ fn patch_exists() {
     # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
     [dependencies]
-    patch-package = "0.1.0"
+    anyhow = "1.0.86"
+
+    [[bin]]
+    name = "package-name"
+    path = "src/main.rs"
 
     [patch]
 
     [patch.crates-io]
-    patch-package = { path = "u9KdJGBDefkZz" }
+    anyhow = { path = "anyhow" }
     '''
     "###);
 }
@@ -72,14 +79,12 @@ fn patch_exists() {
 /// When we add a patch we want to make sure that we're actually depending on the dependency we're
 /// patching.
 #[googletest::test]
-#[should_panic] // This shouldn't panic but having random test failures is annoying.
-                // Remove this line when the code is fixed to pass this test
 fn patch_exists_put_project_does_not_have_dep() {
     let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();
 
     let patch_folder = "u9KdJGBDefkZz";
-    let patch_folder_path = working_dir.join(&patch_folder);
+    let patch_folder_path = working_dir.join(patch_folder);
 
     fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
 

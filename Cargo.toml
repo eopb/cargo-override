@@ -11,6 +11,7 @@ description = "Work-in-progress"
 anyhow = "1.0.81"
 clap = { version = "4.4.4", features = ["derive"] }
 toml_edit = "0.22.9"
+cargo_metadata = "0.18"
 
 [dev-dependencies]
 fake = "2.9.2"
@@ -22,4 +23,3 @@ tempfile = "3.10.1"
 [profile.dev.package]
 insta.opt-level = 3
 similar.opt-level = 3
-

@@ -4,6 +4,7 @@ use std::fmt::Write as _;
 pub struct Manifest {
     header: Header,
     dependencies: Dependencies,
+    bin: Option<Bin>,
 }
 
 impl Manifest {
@@ -11,22 +12,35 @@ impl Manifest {
         Self {
             header,
             dependencies: Dependencies::new(),
+            bin: None,
         }
     }
+
     pub fn add_dependency(mut self, dependency: Dependency) -> Self {
         self.dependencies.add(dependency);
         self
     }
+
+    pub fn add_bin(mut self, bin: Bin) -> Self {
+        self.bin = Some(bin);
+        self
+    }
+
     pub fn render(self) -> String {
         let Self {
             header,
             dependencies,
+            bin,
         } = self;
 
         let mut w = String::new();
 
         writeln!(w, "{}", header.render()).unwrap();
         write!(w, "{}", dependencies.render()).unwrap();
+        if let Some(bin) = bin {
+            write!(w, "{}", bin.render()).unwrap();
+        }
+
         w
     }
 }
@@ -103,13 +117,36 @@ impl Dependencies {
         let Self(dependencies) = self;
 
         let mut f = String::new();
-        if dependencies.len() > 0 {
+        if !dependencies.is_empty() {
             writeln!(f, "[dependencies]").unwrap();
         }
         for dep in dependencies {
             writeln!(f, "{}", dep.render()).unwrap();
         }
         f
+    }
+}
+
+pub struct Bin {
+    name: String,
+    path: String,
+}
+
+impl Bin {
+    pub fn new(name: impl AsRef<str>, path: impl AsRef<str>) -> Self {
+        Self {
+            name: name.as_ref().to_owned(),
+            path: path.as_ref().to_owned(),
+        }
+    }
+
+    pub fn render(self) -> String {
+        let mut w = String::new();
+        writeln!(w).unwrap();
+        writeln!(w, "[[bin]]").unwrap();
+        writeln!(w, "name = \"{0}\"", self.name).unwrap();
+        writeln!(w, "path = \"{0}\"", self.path).unwrap();
+        w
     }
 }
 

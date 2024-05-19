@@ -5,6 +5,7 @@ use std::{
 };
 
 use anyhow::{bail, Context};
+use cargo_metadata::Dependency;
 use clap::Parser;
 
 pub static DEFAULT_REGISTRY: &str = "crates-io";
@@ -48,12 +49,33 @@ pub fn run(working_dir: &Path, args: Args) -> anyhow::Result<()> {
 
     let patch_name = patch_manifest_toml["package"]["name"].as_str().unwrap();
 
+    let project_deps = get_project_dependencies(&project_manifest_path)?;
+
+    if let Some(dependeny) = project_deps.iter().find(|dep| dep.name == patch_name) {
+        println!(
+            "patch dependency '{}' version requirement: '{}' found in project dependencies",
+            dependeny.name, dependeny.req
+        );
+    };
+
     toml_edit::Table::insert(project_patch_overrides_table, patch_name, new_patch);
 
     // TODO: handle error
     let _ = fs::write(&project_manifest_path, project_manifest_toml.to_string());
 
     Ok(())
+}
+
+fn get_project_dependencies(
+    project_manifest_path: &PathBuf,
+) -> Result<Vec<Dependency>, anyhow::Error> {
+    let mut cmd = cargo_metadata::MetadataCommand::new();
+    cmd.manifest_path(project_manifest_path);
+    let metadata = cmd.exec().context("Unable to run `cargo metadata`")?;
+
+    let root_package = metadata.root_package().unwrap();
+
+    Ok(root_package.dependencies.clone())
 }
 
 fn create_subtable<'a>(

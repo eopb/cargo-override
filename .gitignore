@@ -8,3 +8,6 @@
 *.pending-snap
 *.snap*
 !cli/tests/cli-reference@.md.snap
+
+# Binaries
+cargo-override
