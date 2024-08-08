@@ -8,7 +8,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use cargo_override::{run, Args, CARGO_TOML};
+use cargo_override::{run, CargoInvocation, Cli, CARGO_TOML};
 
 use fake::{Fake, Faker};
 use googletest::{
@@ -42,12 +42,7 @@ fn patch_exists() {
         &Manifest::new(Header::basic(patch_crate_name)).render(),
     );
 
-    let result = run(
-        working_dir,
-        Args {
-            path: patch_folder.to_string(),
-        },
-    );
+    let result = run(working_dir, override_path(patch_folder));
     expect_that!(result, ok(eq(())));
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
@@ -95,12 +90,7 @@ fn patch_exists_put_project_does_not_have_dep() {
         &Manifest::new(Header::basic("patch-package")).render(),
     );
 
-    let result = run(
-        working_dir,
-        Args {
-            path: patch_folder.to_string(),
-        },
-    );
+    let result = run(working_dir, override_path(patch_folder));
     expect_that!(result, err(anything()));
 }
 
@@ -128,7 +118,7 @@ fn missing_manifest() {
 
     File::create_new(patch_manifest).expect("failed to create patch manifest file");
 
-    let result = run(working_dir, Args { path: patch_folder });
+    let result = run(working_dir, override_path(patch_folder));
 
     expect_that!(
         result,
@@ -145,12 +135,7 @@ fn patch_path_doesnt_exist() {
 
     let patch_folder: String = Faker.fake();
 
-    let result = run(
-        working_dir,
-        Args {
-            path: patch_folder.clone(),
-        },
-    );
+    let result = run(working_dir, override_path(patch_folder.clone()));
 
     expect_that!(
         result,
@@ -171,12 +156,7 @@ fn patch_manifest_doesnt_exist() {
 
     fs::create_dir(patch_folder_path).expect("failed to create patch folder");
 
-    let result = run(
-        working_dir,
-        Args {
-            path: patch_folder.clone(),
-        },
-    );
+    let result = run(working_dir, override_path(patch_folder.clone()));
 
     expect_that!(
         result,
@@ -185,4 +165,10 @@ fn patch_manifest_doesnt_exist() {
             patch_folder
         ))))
     )
+}
+
+fn override_path(path: impl Into<String>) -> Cli {
+    Cli {
+        command: CargoInvocation::Override { path: path.into() },
+    }
 }

@@ -12,14 +12,24 @@ pub static DEFAULT_REGISTRY: &str = "crates-io";
 pub static CARGO_TOML: &str = "Cargo.toml";
 
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-pub struct Args {
-    #[arg(short, long)]
-    pub path: String,
+#[command(bin_name = "cargo")]
+pub struct Cli {
+    #[command(subcommand)]
+    pub command: CargoInvocation,
 }
 
-pub fn run(working_dir: &Path, args: Args) -> anyhow::Result<()> {
-    let patch_manifest_path = patch_manifest(working_dir, &args.path)?;
+#[derive(Parser, Debug)]
+pub enum CargoInvocation {
+    #[command(name = "override")]
+    Override { path: String },
+}
+
+pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
+    let Cli {
+        command: CargoInvocation::Override { path },
+    } = args;
+
+    let patch_manifest_path = patch_manifest(working_dir, &path)?;
 
     let project_manifest_path = project_manifest(working_dir)?;
 
@@ -37,7 +47,7 @@ pub fn run(working_dir: &Path, args: Args) -> anyhow::Result<()> {
     let project_patch_overrides_table =
         create_subtable(project_patch_table, DEFAULT_REGISTRY, false)?;
 
-    let Ok(new_patch) = format!("{{ path = \"{}\" }}", args.path).parse::<toml_edit::Item>() else {
+    let Ok(new_patch) = format!("{{ path = \"{}\" }}", path).parse::<toml_edit::Item>() else {
         todo!("We haven't escaped the path so we can't be sure this will parse")
     };
 
