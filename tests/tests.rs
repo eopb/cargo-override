@@ -19,10 +19,9 @@ use tempfile::TempDir;
 use test_case::test_case;
 
 #[test_case(None, None)]
-#[test_case(Some("anyhow"), None)]
+#[cfg_attr(feature = "failing_tests", test_case(Some("anyhow"), None))]
 #[test_case(None, Some("0.1.0"))]
 #[googletest::test]
-#[cfg_attr(not(feature = "failing_tests"), should_panic)]
 fn missing_required_fields_on_patch(name: Option<&str>, version: Option<&str>) {
     let patch_crate_name = name.unwrap_or("anyhow");
 

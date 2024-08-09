@@ -61,7 +61,13 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
         .parse()
         .context("patch manifest contains invalid toml")?;
 
-    let patch_name = patch_manifest_toml["package"]["name"].as_str().unwrap();
+    let patch_name = patch_manifest_toml
+        .get("package")
+        .context("patch manifest missing `package`")?
+        .get("name")
+        .context("patch manifest missing `package.name`")?
+        .as_str()
+        .context("patch manifest `package.name` is not a string")?;
 
     let project_deps = get_project_dependencies(&project_manifest_path)?;
 
