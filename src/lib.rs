@@ -61,13 +61,20 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
         .parse()
         .context("patch manifest contains invalid toml")?;
 
-    let patch_name = patch_manifest_toml
+    let patch_manifest_package = patch_manifest_toml
         .get("package")
-        .context("patch manifest missing `package`")?
+        .context("patch manifest missing `package`")?;
+
+    let patch_name = patch_manifest_package
         .get("name")
         .context("patch manifest missing `package.name`")?
         .as_str()
         .context("patch manifest `package.name` is not a string")?;
+
+    // TODO: we need to use this version to ensure that our patch is compatible #28
+    let _patch_version = patch_manifest_package
+        .get("version")
+        .context("patch manifest missing `package.version`")?;
 
     let project_deps = get_project_dependencies(&project_manifest_path)?;
 
