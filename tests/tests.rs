@@ -116,7 +116,7 @@ fn patch_version_incompatible(dependency_version: &str, patch_version: &str) {
 }
 
 #[test_case(None, None)]
-#[cfg_attr(feature = "failing_tests", test_case(Some("anyhow"), None))]
+#[test_case(Some("anyhow"), None)]
 #[test_case(None, Some("0.1.0"))]
 #[googletest::test]
 fn missing_required_fields_on_patch(name: Option<&str>, version: Option<&str>) {
