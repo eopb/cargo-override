@@ -99,6 +99,7 @@ dependencies = [
  "googletest",
  "insta",
  "strip-ansi-escapes",
+ "semver",
  "tempfile",
  "test-case",
  "toml_edit",
