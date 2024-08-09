@@ -78,12 +78,14 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
 
     let project_deps = get_project_dependencies(&project_manifest_path)?;
 
-    if let Some(dependeny) = project_deps.iter().find(|dep| dep.name == patch_name) {
-        println!(
-            "patch dependency '{}' version requirement: '{}' found in project dependencies",
-            dependeny.name, dependeny.req
-        );
+    let Some(dependeny) = project_deps.iter().find(|dep| dep.name == patch_name) else {
+        bail!("project does not depend on patch")
     };
+
+    println!(
+        "patch dependency '{}' version requirement: '{}' found in project dependencies",
+        dependeny.name, dependeny.req
+    );
 
     toml_edit::Table::insert(project_patch_overrides_table, patch_name, new_patch);
 
