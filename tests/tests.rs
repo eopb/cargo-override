@@ -16,6 +16,7 @@ use googletest::{
     matchers::{anything, displays_as, eq, err, ok},
 };
 use tempfile::TempDir;
+use test_case::test_case;
 
 #[googletest::test]
 fn patch_exists() {
@@ -67,6 +68,48 @@ fn patch_exists() {
     anyhow = { path = "anyhow" }
     '''
     "###);
+}
+
+#[test_case(None, None)]
+#[test_case(Some("anyhow"), None)]
+#[test_case(None, Some("0.1.0"))]
+#[googletest::test]
+#[cfg_attr(not(feature = "failing_tests"), should_panic)]
+fn missing_required_fields_on_patch(name: Option<&str>, version: Option<&str>) {
+    let patch_crate_name = name.unwrap_or("anyhow");
+
+    let [name, version] = [name, version].map(|option| option.map(str::to_owned));
+
+    let working_dir = TempDir::new().unwrap();
+    let working_dir = working_dir.path();
+
+    let patch_folder = patch_crate_name.to_string();
+    let patch_folder_path = working_dir.join(patch_folder.clone());
+
+    fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
+
+    let package_name = "package-name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        // Hack: cargo metadata fails if manifest doesn't contain [[bin]] or [lib] secion
+        .add_bin(Bin::new(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new(patch_crate_name, "1.0.86"))
+        .render();
+
+    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
+    let _patch_manifest_path = create_cargo_manifest(
+        &patch_folder_path,
+        &Manifest::new(Header::basic(patch_crate_name).name(name).version(version)).render(),
+    );
+
+    let manifest_before = fs::read_to_string(&working_dir_manifest_path).unwrap();
+
+    let result = run(working_dir, override_path(patch_folder));
+    expect_that!(result, err(anything()));
+
+    let manifest_after = fs::read_to_string(working_dir_manifest_path).unwrap();
+
+    expect_that!(manifest_before, eq(manifest_after));
 }
 
 /// When we add a patch we want to make sure that we're actually depending on the dependency we're
