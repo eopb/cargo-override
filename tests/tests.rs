@@ -81,7 +81,7 @@ fn patch_exists_put_project_does_not_have_dep() {
 
     fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
 
-    let _working_dir_manifest_path = create_cargo_manifest(
+    let working_dir_manifest_path = create_cargo_manifest(
         working_dir,
         &Manifest::new(Header::basic("test-package")).render(),
     );
@@ -90,8 +90,14 @@ fn patch_exists_put_project_does_not_have_dep() {
         &Manifest::new(Header::basic("patch-package")).render(),
     );
 
+    let manifest_before = fs::read_to_string(&working_dir_manifest_path).unwrap();
+
     let result = run(working_dir, override_path(patch_folder));
     expect_that!(result, err(anything()));
+
+    let manifest_after = fs::read_to_string(working_dir_manifest_path).unwrap();
+
+    expect_that!(manifest_before, eq(manifest_after));
 }
 
 fn create_cargo_manifest(dir: &Path, content: &str) -> PathBuf {
