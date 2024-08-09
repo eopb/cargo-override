@@ -97,6 +97,7 @@ dependencies = [
  "fake",
  "googletest",
  "insta",
+ "semver",
  "tempfile",
  "test-case",
  "toml_edit",

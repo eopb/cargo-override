@@ -19,8 +19,8 @@ use tempfile::TempDir;
 use test_case::test_case;
 
 #[test_case("0.1.0", "0.0.2")]
+#[test_case(">=1.2.3, <1.8.0", "1.2.3-alpha.1")]
 #[googletest::test]
-#[cfg_attr(not(feature = "failing_tests"), should_panic)]
 fn patch_version_incompatible(dependency_version: &str, patch_version: &str) {
     let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();
