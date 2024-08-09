@@ -23,6 +23,7 @@ clap = { version = "4.4.4", features = ["derive"] }
 toml_edit = "0.22.9"
 cargo_metadata = "0.18"
 fs-err = "2.11.0"
+semver = "1.0.23"
 
 [dev-dependencies]
 fake = "2.9.2"

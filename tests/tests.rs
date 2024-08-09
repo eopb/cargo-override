@@ -41,7 +41,7 @@ fn patch_exists() {
     let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
     let _patch_manifest_path = create_cargo_manifest(
         &patch_folder_path,
-        &Manifest::new(Header::basic(patch_crate_name)).render(),
+        &Manifest::new(Header::basic(patch_crate_name).version("1.1.5".to_owned())).render(),
     );
 
     let result = run(working_dir, override_path(patch_folder));
@@ -72,8 +72,8 @@ fn patch_exists() {
 }
 
 #[test_case("0.1.0", "0.0.2")]
+#[test_case(">=1.2.3, <1.8.0", "1.2.3-alpha.1")]
 #[googletest::test]
-#[cfg_attr(not(feature = "failing_tests"), should_panic)]
 fn patch_version_incompatible(dependency_version: &str, patch_version: &str) {
     let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();

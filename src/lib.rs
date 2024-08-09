@@ -61,36 +61,35 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
         .parse()
         .context("patch manifest contains invalid toml")?;
 
-    let patch_manifest_package = patch_manifest_toml
-        .get("package")
-        .context("patch manifest missing `package`")?;
-
-    let patch_name = patch_manifest_package
-        .get("name")
-        .context("patch manifest missing `package.name`")?
-        .as_str()
-        .context("patch manifest `package.name` is not a string")?;
-
-    // TODO: we need to use this version to ensure that our patch is compatible #28
-    let _patch_version = patch_manifest_package
-        .get("version")
-        .context("patch manifest missing `package.version`")?;
+    let patch_manifest_details =
+        ManifestDetails::read(&patch_manifest_toml).context("failed to get details for patch")?;
 
     let project_deps = get_project_dependencies(&project_manifest_path)?;
 
-    let Some(dependeny) = project_deps.iter().find(|dep| dep.name == patch_name) else {
+    let Some(dependeny) = project_deps
+        .iter()
+        .find(|dep| dep.name == patch_manifest_details.name)
+    else {
         bail!("project does not depend on patch")
     };
+
+    if dependeny.req.matches(&patch_manifest_details.version).not() {
+        bail!("patch can not be applied becase version is incompatible")
+    }
 
     println!(
         "patch dependency '{}' version requirement: '{}' found in project dependencies",
         dependeny.name, dependeny.req
     );
 
-    toml_edit::Table::insert(project_patch_overrides_table, patch_name, new_patch);
+    toml_edit::Table::insert(
+        project_patch_overrides_table,
+        patch_manifest_details.name,
+        new_patch,
+    );
 
     // TODO: handle error
-    let _ = fs::write(&project_manifest_path, project_manifest_toml.to_string());
+    let _ = fs::write(&project_manifest_path, project_manifest_toml.to_string()).unwrap();
 
     Ok(())
 }
@@ -156,4 +155,33 @@ fn project_manifest(working_dir: &Path) -> anyhow::Result<PathBuf> {
     }
 
     Ok(project_manifest)
+}
+
+struct ManifestDetails<'a> {
+    name: &'a str,
+    version: semver::Version,
+}
+
+impl<'a> ManifestDetails<'a> {
+    fn read(document: &'a toml_edit::DocumentMut) -> anyhow::Result<Self> {
+        let package = document
+            .get("package")
+            .context("manifest missing `package`")?;
+        Ok({
+            Self {
+                name: package
+                    .get("name")
+                    .context("manifest missing `package.name`")?
+                    .as_str()
+                    .context("manifest `package.name` is not a string")?,
+                version: package
+                    .get("version")
+                    .context("manifest missing `package.version`")?
+                    .as_str()
+                    .context("manifest `package.version` is not a string")?
+                    .parse()
+                    .context("manifest `package.version` is not valid semver")?,
+            }
+        })
+    }
 }
