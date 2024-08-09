@@ -61,11 +61,11 @@ impl Header {
             default_comment: true,
         }
     }
-    pub fn _name(mut self, name: impl Into<Option<String>>) -> Self {
+    pub fn name(mut self, name: impl Into<Option<String>>) -> Self {
         self.name = name.into();
         self
     }
-    pub fn _version(mut self, version: impl Into<Option<String>>) -> Self {
+    pub fn version(mut self, version: impl Into<Option<String>>) -> Self {
         self.version = version.into();
         self
     }
