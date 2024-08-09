@@ -17,6 +17,7 @@ cargo_metadata = "0.18"
 fake = "2.9.2"
 googletest = "0.11.0"
 insta = { version = "1.38.0", features = ["toml"] }
+strip-ansi-escapes = "0.2.0"
 tempfile = "3.10.1"
 
 # Faster snapshotting https://insta.rs/docs/quickstart/#optional-faster-runs
