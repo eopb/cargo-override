@@ -1,8 +1,35 @@
 mod manifest;
 
-use clap::Parser;
+use std::path::PathBuf;
 
-use cargo_override::Cli;
+use clap::Parser;
+use fake::{Fake, Faker};
+use googletest::{
+    expect_that,
+    matchers::{eq, matches_pattern, ok},
+};
+
+use cargo_override::{CargoInvocation, Cli};
+
+#[googletest::test]
+fn path_parse_from_args() {
+    for base_command in ["cargo override", "cargo-override"] {
+        let path: PathBuf = Faker.fake();
+
+        let path = path.to_str().unwrap();
+
+        let output = Cli::try_parse_from([base_command, "override", "--path", path]);
+
+        expect_that!(
+            output,
+            ok(matches_pattern!(Cli {
+                command: matches_pattern!(CargoInvocation::Override {
+                    path: eq(path.to_owned())
+                })
+            }))
+        )
+    }
+}
 
 #[googletest::test]
 fn override_subcommand_help_message() {
