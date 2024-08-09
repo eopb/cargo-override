@@ -71,6 +71,50 @@ fn patch_exists() {
     "###);
 }
 
+#[test_case("0.1.0", "0.0.2")]
+#[googletest::test]
+#[cfg_attr(not(feature = "failing_tests"), should_panic)]
+fn patch_version_incompatible(dependency_version: &str, patch_version: &str) {
+    let working_dir = TempDir::new().unwrap();
+    let working_dir = working_dir.path();
+
+    let patch_crate_name = "redact";
+
+    let patch_folder = patch_crate_name.to_string();
+    let patch_folder_path = working_dir.join(patch_folder.clone());
+
+    fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
+
+    let package_name = "package-name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        // Hack: cargo metadata fails if manifest doesn't contain [[bin]] or [lib] secion
+        .add_bin(Bin::new(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new(patch_crate_name, dependency_version))
+        .render();
+
+    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
+    let _patch_manifest_path = create_cargo_manifest(
+        &patch_folder_path,
+        &Manifest::new(
+            Header::basic(patch_crate_name)
+                .name(patch_crate_name.to_owned())
+                .version(patch_version.to_owned()),
+        )
+        .render(),
+    );
+
+    let manifest_before = fs::read_to_string(&working_dir_manifest_path).unwrap();
+
+    let result = run(working_dir, override_path(patch_folder));
+
+    expect_that!(result, err(anything()));
+
+    let manifest_after = fs::read_to_string(working_dir_manifest_path).unwrap();
+
+    expect_that!(manifest_before, eq(manifest_after));
+}
+
 #[test_case(None, None)]
 #[cfg_attr(feature = "failing_tests", test_case(Some("anyhow"), None))]
 #[test_case(None, Some("0.1.0"))]
