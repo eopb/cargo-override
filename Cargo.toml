@@ -7,6 +7,16 @@ description = "Work-in-progress"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+# Used to introduce TDD style tests, that are known to fail now, without breaking CI.
+#
+# These tests are marked with `#[cfg_attr(not(feature = "failing_tests"), should_panic)]`.
+# Once the bugs are fixed, and these tests start passing, those attributes need to be
+# removed.
+#
+# You can run these special tests now with `cargo test --features failing_tests`
+failing_tests = []
+
 [dependencies]
 anyhow = "1.0.81"
 clap = { version = "4.4.4", features = ["derive"] }
@@ -18,6 +28,7 @@ fake = "2.9.2"
 googletest = "0.11.0"
 insta = { version = "1.38.0", features = ["toml"] }
 tempfile = "3.10.1"
+test-case = "3.3.1"
 
 # Faster snapshotting https://insta.rs/docs/quickstart/#optional-faster-runs
 [profile.dev.package]
