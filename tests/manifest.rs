@@ -61,17 +61,21 @@ impl Header {
             default_comment: true,
         }
     }
-    pub fn _name(&mut self, name: impl Into<Option<String>>) {
+    pub fn _name(mut self, name: impl Into<Option<String>>) -> Self {
         self.name = name.into();
+        self
     }
-    pub fn _version(&mut self, version: impl Into<Option<String>>) {
+    pub fn _version(mut self, version: impl Into<Option<String>>) -> Self {
         self.version = version.into();
+        self
     }
-    pub fn _edition(&mut self, edition: impl Into<Option<String>>) {
+    pub fn _edition(mut self, edition: impl Into<Option<String>>) -> Self {
         self.edition = edition.into();
+        self
     }
-    pub fn _default_comment(&mut self, enable: bool) {
+    pub fn _default_comment(mut self, enable: bool) -> Self {
         self.default_comment = enable;
+        self
     }
     pub fn render(self) -> String {
         let Self {
