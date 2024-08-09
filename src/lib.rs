@@ -21,7 +21,10 @@ pub struct Cli {
 #[derive(Parser, Debug)]
 pub enum CargoInvocation {
     #[command(name = "override")]
-    Override { path: String },
+    Override {
+        #[arg(short, long)]
+        path: String,
+    },
 }
 
 pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
