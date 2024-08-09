@@ -156,6 +156,41 @@ fn missing_required_fields_on_patch(name: Option<&str>, version: Option<&str>) {
     expect_that!(manifest_before, eq(manifest_after));
 }
 
+#[googletest::test]
+fn fail_patch_when_project_does_not_depend() {
+    let working_dir = TempDir::new().unwrap();
+    let working_dir = working_dir.path();
+
+    let patch_crate_name = "anyhow";
+
+    let patch_folder = patch_crate_name.to_string();
+    let patch_folder_path = working_dir.join(patch_folder.clone());
+
+    fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
+
+    let package_name = "package-name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        // Hack: cargo metadata fails if manifest doesn't contain [[bin]] or [lib] secion
+        .add_bin(Bin::new(package_name, "src/main.rs"))
+        .render();
+
+    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
+    let _patch_manifest_path = create_cargo_manifest(
+        &patch_folder_path,
+        &Manifest::new(Header::basic(patch_crate_name)).render(),
+    );
+
+    let manifest_before = fs::read_to_string(&working_dir_manifest_path).unwrap();
+
+    let result = run(working_dir, override_path(patch_folder));
+    expect_that!(result, err(anything()));
+
+    let manifest_after = fs::read_to_string(working_dir_manifest_path).unwrap();
+
+    expect_that!(manifest_before, eq(manifest_after));
+}
+
 /// When we add a patch we want to make sure that we're actually depending on the dependency we're
 /// patching.
 #[googletest::test]
