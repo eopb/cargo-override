@@ -24,6 +24,8 @@ pub enum CargoInvocation {
     Override {
         #[arg(short, long)]
         path: String,
+        #[arg(long)]
+        registry: Option<String>,
         /// Assert that `Cargo.lock` will remain unchanged
         #[arg(long)]
         locked: bool,
@@ -44,6 +46,7 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
                 locked,
                 offline,
                 frozen,
+                registry,
             },
     } = args;
 
@@ -53,24 +56,6 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
     let patch_manifest_path = patch_manifest(working_dir, &path)?;
 
     let project_manifest_path = project_manifest(working_dir)?;
-
-    let project_manifest_content =
-        fs::read_to_string(&project_manifest_path).context("failed to read patch manifest")?;
-
-    let mut project_manifest_toml: toml_edit::DocumentMut = project_manifest_content
-        .parse()
-        .context("patch manifest contains invalid toml")?;
-
-    let project_manifest_table = project_manifest_toml.as_table_mut();
-
-    let project_patch_table = create_subtable(project_manifest_table, "patch", true)?;
-
-    let project_patch_overrides_table =
-        create_subtable(project_patch_table, DEFAULT_REGISTRY, false)?;
-
-    let Ok(new_patch) = format!("{{ path = \"{}\" }}", path).parse::<toml_edit::Item>() else {
-        todo!("We haven't escaped the path so we can't be sure this will parse")
-    };
 
     let patch_manifest_content =
         fs::read_to_string(patch_manifest_path).context("failed to read patch manifest")?;
@@ -95,10 +80,52 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
         bail!("patch can not be applied becase version is incompatible")
     }
 
+    let registry = if let Some(registry_url) = &dependeny.registry {
+        match registry {
+            Some(ref registry) => registry,
+            None => bail!(
+                "unable to determine registry name for `{}`
+                 provide it using the `--registry` flag",
+                registry_url
+            ),
+        }
+    } else {
+        if let Some(registry) = registry {
+            if registry != DEFAULT_REGISTRY {
+                bail!(
+                    "user provided registry `{}` with the `--registry` flag \
+                     but dependency `{}` \
+                     uses the default registry `{}`",
+                    registry,
+                    dependeny.name,
+                    DEFAULT_REGISTRY,
+                )
+            };
+        }
+        DEFAULT_REGISTRY
+    };
+
     println!(
         "patch dependency '{}' version requirement: '{}' found in project dependencies",
         dependeny.name, dependeny.req
     );
+
+    let project_manifest_content =
+        fs::read_to_string(&project_manifest_path).context("failed to read patch manifest")?;
+
+    let mut project_manifest_toml: toml_edit::DocumentMut = project_manifest_content
+        .parse()
+        .context("patch manifest contains invalid toml")?;
+
+    let project_manifest_table = project_manifest_toml.as_table_mut();
+
+    let project_patch_table = create_subtable(project_manifest_table, "patch", true)?;
+
+    let project_patch_overrides_table = create_subtable(project_patch_table, registry, false)?;
+
+    let Ok(new_patch) = format!("{{ path = \"{}\" }}", path).parse::<toml_edit::Item>() else {
+        todo!("We haven't escaped the path so we can't be sure this will parse")
+    };
 
     toml_edit::Table::insert(
         project_patch_overrides_table,

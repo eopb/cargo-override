@@ -302,6 +302,7 @@ fn override_path(path: impl Into<String>) -> Cli {
             frozen: true,
             locked: false,
             offline: false,
+            registry: None,
         },
     }
 }
