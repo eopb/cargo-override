@@ -3,7 +3,7 @@ mod manifest;
 use manifest::{Bin, Dependency, Header, Manifest};
 
 use std::{
-    fs::{self, File},
+    fs::File,
     io::Write,
     path::{Path, PathBuf},
 };
@@ -11,6 +11,7 @@ use std::{
 use cargo_override::{run, CargoInvocation, Cli, CARGO_TOML};
 
 use fake::{Fake, Faker};
+use fs_err as fs;
 use googletest::{
     expect_that,
     matchers::{anything, displays_as, eq, err, ok},
