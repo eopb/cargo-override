@@ -8,6 +8,6 @@ fn main() {
     let args = Cli::parse();
 
     if let Err(e) = run(&current_dir().unwrap(), args) {
-        eprintln!("error: {e}");
+        eprintln!("error: {e:?}");
     }
 }
