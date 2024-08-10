@@ -13,16 +13,67 @@ use cargo_override::{run, CargoInvocation, Cli, CARGO_TOML};
 use fake::{Fake, Faker};
 use googletest::{
     expect_that,
-    matchers::{anything, displays_as, eq, err, ok},
+    matchers::{anything, displays_as, eq, err},
 };
 use tempfile::TempDir;
+use test_case::test_case;
 
+#[test_case("0.1.0", "0.0.2")]
+#[test_case(">=1.2.3, <1.8.0", "1.2.3-alpha.1")]
 #[googletest::test]
-fn patch_exists() {
+fn patch_version_incompatible(dependency_version: &str, patch_version: &str) {
     let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();
 
-    let patch_crate_name = "anyhow";
+    let patch_crate_name = "redact";
+
+    let patch_folder = patch_crate_name.to_string();
+    let patch_folder_path = working_dir.join(patch_folder.clone());
+
+    fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
+
+    let package_name = "package-name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        // Hack: cargo metadata fails if manifest doesn't contain [[bin]] or [lib] secion
+        .add_bin(Bin::new(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new(patch_crate_name, dependency_version))
+        .render();
+
+    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
+    let _patch_manifest_path = create_cargo_manifest(
+        &patch_folder_path,
+        &Manifest::new(
+            Header::basic(patch_crate_name)
+                .name(patch_crate_name.to_owned())
+                .version(patch_version.to_owned()),
+        )
+        .render(),
+    );
+
+    let manifest_before = fs::read_to_string(&working_dir_manifest_path).unwrap();
+
+    let result = run(working_dir, override_path(patch_folder));
+
+    expect_that!(result, err(anything()));
+
+    let manifest_after = fs::read_to_string(working_dir_manifest_path).unwrap();
+
+    expect_that!(manifest_before, eq(manifest_after));
+}
+
+#[test_case(None, None)]
+#[test_case(Some("anyhow"), None)]
+#[test_case(None, Some("0.1.0"))]
+#[googletest::test]
+fn missing_required_fields_on_patch(name: Option<&str>, version: Option<&str>) {
+    let patch_crate_name = name.unwrap_or("anyhow");
+
+    let [name, version] = [name, version].map(|option| option.map(str::to_owned));
+
+    let working_dir = TempDir::new().unwrap();
+    let working_dir = working_dir.path();
+
     let patch_folder = patch_crate_name.to_string();
     let patch_folder_path = working_dir.join(patch_folder.clone());
 
@@ -39,34 +90,52 @@ fn patch_exists() {
     let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
     let _patch_manifest_path = create_cargo_manifest(
         &patch_folder_path,
+        &Manifest::new(Header::basic(patch_crate_name).name(name).version(version)).render(),
+    );
+
+    let manifest_before = fs::read_to_string(&working_dir_manifest_path).unwrap();
+
+    let result = run(working_dir, override_path(patch_folder));
+    expect_that!(result, err(anything()));
+
+    let manifest_after = fs::read_to_string(working_dir_manifest_path).unwrap();
+
+    expect_that!(manifest_before, eq(manifest_after));
+}
+
+#[googletest::test]
+fn fail_patch_when_project_does_not_depend() {
+    let working_dir = TempDir::new().unwrap();
+    let working_dir = working_dir.path();
+
+    let patch_crate_name = "anyhow";
+
+    let patch_folder = patch_crate_name.to_string();
+    let patch_folder_path = working_dir.join(patch_folder.clone());
+
+    fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
+
+    let package_name = "package-name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        // Hack: cargo metadata fails if manifest doesn't contain [[bin]] or [lib] secion
+        .add_bin(Bin::new(package_name, "src/main.rs"))
+        .render();
+
+    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
+    let _patch_manifest_path = create_cargo_manifest(
+        &patch_folder_path,
         &Manifest::new(Header::basic(patch_crate_name)).render(),
     );
 
+    let manifest_before = fs::read_to_string(&working_dir_manifest_path).unwrap();
+
     let result = run(working_dir, override_path(patch_folder));
-    expect_that!(result, ok(eq(())));
+    expect_that!(result, err(anything()));
 
-    let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
+    let manifest_after = fs::read_to_string(working_dir_manifest_path).unwrap();
 
-    insta::assert_toml_snapshot!(manifest, @r###"
-    '''
-    [package]
-    name = "package-name"
-    version = "0.1.0"
-    edition = "2021"
-
-    # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-    [dependencies]
-    anyhow = "1.0.86"
-
-    [[bin]]
-    name = "package-name"
-    path = "src/main.rs"
-
-    [patch.crates-io]
-    anyhow = { path = "anyhow" }
-    '''
-    "###);
+    expect_that!(manifest_before, eq(manifest_after));
 }
 
 /// When we add a patch we want to make sure that we're actually depending on the dependency we're

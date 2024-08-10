@@ -23,8 +23,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: taiki-e/install-action@cargo-hack
       - name: test
-        run: cargo test --all-features
+        run: cargo hack test --feature-powerset --exclude-features failing_tests
   fmt:
     runs-on: ubuntu-latest
     steps:
