@@ -1,5 +1,4 @@
 use std::{
-    fs,
     ops::Not,
     path::{Path, PathBuf},
 };
@@ -7,6 +6,7 @@ use std::{
 use anyhow::{bail, Context};
 use cargo_metadata::Dependency;
 use clap::Parser;
+use fs_err as fs;
 
 pub static DEFAULT_REGISTRY: &str = "crates-io";
 pub static CARGO_TOML: &str = "Cargo.toml";
