@@ -133,8 +133,8 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
         new_patch,
     );
 
-    // TODO: handle error
-    let _ = fs::write(&project_manifest_path, project_manifest_toml.to_string()).unwrap();
+    fs::write(&project_manifest_path, project_manifest_toml.to_string())
+        .context("failed to write patched `Cargo.toml` file")?;
 
     Ok(())
 }
