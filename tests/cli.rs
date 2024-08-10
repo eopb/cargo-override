@@ -46,11 +46,12 @@ fn override_subcommand_help_message() {
             Usage: cargo override [OPTIONS] --path <PATH>
 
             Options:
-              -p, --path <PATH>  
-                  --locked       Assert that `Cargo.lock` will remain unchanged
-                  --offline      Run without accessing the network
-                  --frozen       Equivalent to specifying both --locked and --offline
-              -h, --help         Print help
+              -p, --path <PATH>          
+                  --registry <REGISTRY>  
+                  --locked               Assert that `Cargo.lock` will remain unchanged
+                  --offline              Run without accessing the network
+                  --frozen               Equivalent to specifying both --locked and --offline
+              -h, --help                 Print help
             '''
             "###);
         }
