@@ -297,6 +297,11 @@ fn patch_manifest_doesnt_exist() {
 
 fn override_path(path: impl Into<String>) -> Cli {
     Cli {
-        command: CargoInvocation::Override { path: path.into() },
+        command: CargoInvocation::Override {
+            path: path.into(),
+            frozen: true,
+            locked: false,
+            offline: false,
+        },
     }
 }
