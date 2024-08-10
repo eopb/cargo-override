@@ -16,10 +16,13 @@ fn override_subcommand_help_message() {
 
             insta::assert_toml_snapshot!(output, @r###"
             '''
-            Usage: cargo override --path <PATH>
+            Usage: cargo override [OPTIONS] --path <PATH>
 
             Options:
               -p, --path <PATH>  
+                  --locked       Assert that `Cargo.lock` will remain unchanged
+                  --offline      Run without accessing the network
+                  --frozen       Equivalent to specifying both --locked and --offline
               -h, --help         Print help
             '''
             "###);

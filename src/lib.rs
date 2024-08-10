@@ -24,13 +24,31 @@ pub enum CargoInvocation {
     Override {
         #[arg(short, long)]
         path: String,
+        /// Assert that `Cargo.lock` will remain unchanged
+        #[arg(long)]
+        locked: bool,
+        /// Run without accessing the network
+        #[arg(long)]
+        offline: bool,
+        /// Equivalent to specifying both --locked and --offline
+        #[arg(long)]
+        frozen: bool,
     },
 }
 
 pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
     let Cli {
-        command: CargoInvocation::Override { path },
+        command:
+            CargoInvocation::Override {
+                path,
+                locked,
+                offline,
+                frozen,
+            },
     } = args;
+
+    // `--frozen` implies `--locked` and `--offline`
+    let [locked, offline] = [locked, offline].map(|f| f || frozen);
 
     let patch_manifest_path = patch_manifest(working_dir, &path)?;
 
@@ -63,7 +81,7 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
 
     let patch_name = patch_manifest_toml["package"]["name"].as_str().unwrap();
 
-    let project_deps = get_project_dependencies(&project_manifest_path)?;
+    let project_deps = get_project_dependencies(&project_manifest_path, locked, offline)?;
 
     if let Some(dependeny) = project_deps.iter().find(|dep| dep.name == patch_name) {
         println!(
@@ -82,10 +100,22 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
 
 fn get_project_dependencies(
     project_manifest_path: &PathBuf,
+    locked: bool,
+    offline: bool,
 ) -> Result<Vec<Dependency>, anyhow::Error> {
     let mut cmd = cargo_metadata::MetadataCommand::new();
     cmd.manifest_path(project_manifest_path);
-    cmd.other_options(["--no-deps"].map(str::to_owned));
+    cmd.other_options(
+        [
+            locked.then_some("--locked"),
+            offline.then_some("--offline"),
+            Some("--no-deps"),
+        ]
+        .into_iter()
+        .flatten()
+        .map(str::to_owned)
+        .collect::<Vec<_>>(),
+    );
     let metadata = cmd.exec().context("Unable to run `cargo metadata`")?;
 
     let root_package = metadata.root_package().unwrap();
