@@ -1,3 +1,5 @@
+pub mod registry;
+
 use std::{
     ops::Not,
     path::{Path, PathBuf},
@@ -67,7 +69,8 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
     let patch_manifest_details =
         ManifestDetails::read(&patch_manifest_toml).context("failed to get details for patch")?;
 
-    let project_deps = get_project_dependencies(&project_manifest_path, locked, offline)?;
+    let project_deps = get_project_dependencies(&working_dir, locked, offline)
+        .context("failed to get dependencies for current project")?;
 
     let Some(dependeny) = project_deps
         .iter()
@@ -81,9 +84,29 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
     }
 
     let registry = if let Some(registry_url) = &dependeny.registry {
-        match registry {
-            Some(ref registry) => registry,
-            None => bail!(
+        let registry_guess =
+            registry::get_registry_name_from_url(working_dir.to_path_buf(), registry_url)
+                .context("failed to guess registry")?;
+
+        match (registry.to_owned(), registry_guess) {
+            (Some(registry), None) => registry,
+            (None, Some(registry)) => registry,
+            (Some(registry_flag), Some(registry_guess)) if registry_guess == registry_flag => {
+                registry_guess
+            }
+            (Some(registry_flag), Some(registry_guess)) => {
+                // TODO: force is unimplemented
+                bail!(
+                    "user provided registry `{}` with the `--registry` flag \
+                     but dependency `{}` \
+                     uses registry `{}`. 
+                     To use the registry, you passed, use `--force`",
+                    registry_flag,
+                    dependeny.name,
+                    registry_guess
+                )
+            }
+            (None, None) => bail!(
                 "unable to determine registry name for `{}`
                  provide it using the `--registry` flag",
                 registry_url
@@ -102,7 +125,7 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
                 )
             };
         }
-        DEFAULT_REGISTRY
+        DEFAULT_REGISTRY.to_owned()
     };
 
     println!(
@@ -121,7 +144,7 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
 
     let project_patch_table = create_subtable(project_manifest_table, "patch", true)?;
 
-    let project_patch_overrides_table = create_subtable(project_patch_table, registry, false)?;
+    let project_patch_overrides_table = create_subtable(project_patch_table, &registry, false)?;
 
     let Ok(new_patch) = format!("{{ path = \"{}\" }}", path).parse::<toml_edit::Item>() else {
         todo!("We haven't escaped the path so we can't be sure this will parse")
@@ -140,12 +163,12 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
 }
 
 fn get_project_dependencies(
-    project_manifest_path: &PathBuf,
+    project_dir: impl Into<PathBuf>,
     locked: bool,
     offline: bool,
 ) -> Result<Vec<Dependency>, anyhow::Error> {
     let mut cmd = cargo_metadata::MetadataCommand::new();
-    cmd.manifest_path(project_manifest_path);
+    cmd.current_dir(project_dir);
     cmd.other_options(
         [
             locked.then_some("--locked"),
