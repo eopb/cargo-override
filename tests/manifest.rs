@@ -157,6 +157,7 @@ impl Bin {
 pub struct Dependency {
     name: String,
     version: String,
+    registry: Option<String>,
 }
 
 impl Dependency {
@@ -164,13 +165,27 @@ impl Dependency {
         Dependency {
             name: name.as_ref().to_owned(),
             version: version.as_ref().to_owned(),
+            registry: None,
         }
     }
 
-    fn render(self) -> String {
-        let Self { name, version } = self;
+    pub fn registry(mut self, name: impl ToString) -> Dependency {
+        self.registry = Some(name.to_string());
+        self
+    }
 
-        format!("{name} = \"{version}\"")
+    fn render(self) -> String {
+        let Self {
+            name,
+            version,
+            registry,
+        } = self;
+
+        if let Some(registry) = registry {
+            format!("{name} = {{ version = \"{version}\", registry = \"{registry}\" }}")
+        } else {
+            format!("{name} = \"{version}\"")
+        }
     }
 }
 

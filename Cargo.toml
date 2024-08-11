@@ -24,13 +24,16 @@ toml_edit = "0.22.9"
 cargo_metadata = "0.18"
 fs-err = "2.11.0"
 semver = "1.0.23"
+cargo = "0.81.0"
+winnow = "0.6.18"
+serde = { version = "1.0.206", features = ["derive"] }
 
 [dev-dependencies]
 fake = "2.9.2"
 googletest = "0.11.0"
 insta = { version = "1.38.0", features = ["toml"] }
 strip-ansi-escapes = "0.2.0"
-tempfile = "3.10.1"
+tempfile = "3.12.0"
 test-case = "3.3.1"
 
 # Faster snapshotting https://insta.rs/docs/quickstart/#optional-faster-runs
