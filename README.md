@@ -1,38 +1,18 @@
 # cargo-override
-The quickest way to patch dependacies in rust projects
 
-## Usage
+Quickly [override dependencies](https://doc.rust-lang.org/cargo/reference/overriding-dependencies.html) using the `[patch]` section of `Cargo.toml`s.
 
+This plugin adds a new cargo subcommand, `cargo override`, which makes it trivial to patch dependencies.
+Just run `cargo override --path path/to/patched/dependency`!
+
+This one command checks all of the things you would otherwise need to check manually:
+
+```toml
+# Is this the correct syntax for overriding dependencies?
+[patch.crates-io]
+#      ^^^^^^^^^ Is this the correct registry for this dependency?
+anyhow = { path = "../anyhow" }
+#                  ^^^^^^^^^ Does a crate called "anyhow" exist at this path?
+#                  ^^^^^^^^^
+#                  Does the version of anyhow used here meet the requirement we set in our `Cargo.toml`?
 ```
-cargo override serde  
-```
-
-Does these things
-- Checks that `serde` is being used by the current project and what registry it's getting it from by checking the `Cargo.toml`.
-- Downloads `serde` from the correct registry in a new local folder `patches/serde`.
-- Add a `patch` section to the cargo.toml pointing to the new local folder.
-
-There are also two other low priority variations to this 
-
-```
-cargo override https://github.com/serde-rs/serde
-```
-
-To fetch the dependancy from git rather than the registry
-
-```
-cargo override ../serde  
-# or if in the same folder
-cargo override ./serde  
-```
-
-to not clone anything but just point to a local folder
-
-## Tools
-
-I'm planning on using
-
-- clap
-- toml_edit
-- cargo-util
-- human-panic
