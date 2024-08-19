@@ -1,6 +1,8 @@
+mod checksum;
 mod manifest;
 
-use manifest::{Bin, Dependency, Header, Manifest};
+use checksum::Checksum;
+use manifest::{Dependency, Header, Manifest, Target};
 
 use std::{
     fs::File,
@@ -21,6 +23,242 @@ use tempfile::TempDir;
 use test_case::test_case;
 
 #[googletest::test]
+fn patch_transative_on_regisrty() {
+    let working_dir = TempDir::new().unwrap();
+    let working_dir = working_dir.path();
+
+    let patch_crate_name = "anyhow";
+    let intermediary_crate_name = "foo";
+    let patch_folder = patch_crate_name.to_string();
+    let patch_folder_path = working_dir.join(patch_folder.clone());
+
+    fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
+
+    write_cargo_config(
+        &working_dir,
+        r#"
+        [registries]
+        truelayer-rustlayer = { index = "https://dl.cloudsmith.io/basic/truelayer/rustlayer/cargo/index.git" }
+
+        [source."registry+https://dl.cloudsmith.io/basic/truelayer/rustlayer/cargo/index.git"]
+        registry = "https://dl.cloudsmith.io/basic/truelayer/rustlayer/cargo/index.git"
+        replace-with = "vendored-sources"
+
+        [source.crates-io]
+        replace-with = "vendored-sources"
+
+        [source.vendored-sources]
+        directory = "vendor"
+        "#,
+    );
+
+    let package_name = "package_name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        // Hack: cargo metadata fails if manifest doesn't contain [[bin]] or [lib] secion
+        .add_target(Target::bin(package_name, "src/main.rs"))
+        .add_dependency(
+            Dependency::new(intermediary_crate_name, "0.1.0").registry("truelayer-rustlayer"),
+        )
+        .render();
+
+    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
+    let _patch_manifest_path = create_cargo_manifest(
+        &patch_folder_path,
+        &Manifest::new(Header::basic(patch_crate_name).version("1.1.5".to_owned()))
+            .add_target(Target::lib(package_name, "src/lib.rs"))
+            .render(),
+    );
+
+    let vendor_dir = working_dir.join("vendor");
+
+    fs::create_dir(&vendor_dir).expect("failed to create vendor folder");
+
+    {
+        let vendored_itermediray_crate = vendor_dir.join(intermediary_crate_name);
+
+        fs::create_dir(&vendored_itermediray_crate).expect("failed to create vendor folder");
+
+        let manifest_header = Header::basic(intermediary_crate_name);
+        let manifest = Manifest::new(manifest_header)
+            .add_target(Target::lib(package_name, "src/lib.rs"))
+            .add_dependency(Dependency::new(patch_crate_name, "1.0.86").registry_index(
+                "https://dl.cloudsmith.io/basic/truelayer/rustlayer/cargo/index.git",
+            ))
+            .render();
+
+        let _ = create_cargo_manifest(&vendored_itermediray_crate, &manifest);
+        let checksum = Checksum::package_only_manifest(&manifest);
+        checksum.write_to_dir(&vendored_itermediray_crate);
+    }
+    {
+        let vendored_transative_crate = vendor_dir.join("anyhow");
+
+        fs::create_dir(&vendored_transative_crate).expect("failed to create vendor folder");
+
+        let manifest_header = Header::basic("anyhow").version("1.0.86".to_owned());
+        let manifest = Manifest::new(manifest_header)
+            .add_target(Target::lib(package_name, "src/lib.rs"))
+            .render();
+
+        let _ = create_cargo_manifest(&vendored_transative_crate, &manifest);
+        let checksum = Checksum::package_only_manifest(&manifest);
+        checksum.write_to_dir(&vendored_transative_crate);
+    }
+
+    let result = run(
+        working_dir,
+        Cli {
+            command: CargoInvocation::Override {
+                path: patch_folder.into(),
+                frozen: false,
+                locked: false,
+                offline: true,
+                no_deps: false,
+                registry: None,
+            },
+        },
+    );
+
+    expect_that!(result, ok(eq(())));
+
+    let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
+
+    insta::assert_toml_snapshot!(manifest, @r###"
+    '''
+    [package]
+    name = "package_name"
+    version = "0.1.0"
+    edition = "2021"
+
+    # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+    [dependencies]
+    foo = { version = "0.1.0", registry = "truelayer-rustlayer" }
+
+    [[bin]]
+    name = "package_name"
+    path = "src/main.rs"
+
+    [patch.truelayer-rustlayer]
+    anyhow = { path = "anyhow" }
+    '''
+    "###);
+}
+
+#[googletest::test]
+fn patch_transative() {
+    let working_dir = tempfile::Builder::new().keep(true).tempdir().unwrap();
+    let working_dir = working_dir.path();
+
+    let patch_crate_name = "anyhow";
+    let intermediary_crate_name = "foo";
+    let patch_folder = patch_crate_name.to_string();
+    let patch_folder_path = working_dir.join(patch_folder.clone());
+
+    fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
+
+    write_cargo_config(
+        &working_dir,
+        r#"
+        [source.crates-io]
+        replace-with = "vendored-sources"
+
+        [source.vendored-sources]
+        directory = "vendor"
+        "#,
+    );
+
+    let package_name = "package_name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        .add_target(Target::bin(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new(intermediary_crate_name, "0.1.0"))
+        .render();
+
+    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
+    let _patch_manifest_path = create_cargo_manifest(
+        &patch_folder_path,
+        &Manifest::new(Header::basic(patch_crate_name).version("1.1.5".to_owned()))
+            .add_target(Target::lib(package_name, "src/lib.rs"))
+            .render(),
+    );
+
+    let vendor_dir = working_dir.join("vendor");
+
+    fs::create_dir(&vendor_dir).expect("failed to create vendor folder");
+
+    {
+        let vendored_itermediray_crate = vendor_dir.join(intermediary_crate_name);
+
+        fs::create_dir(&vendored_itermediray_crate).expect("failed to create vendor folder");
+
+        let manifest_header = Header::basic(intermediary_crate_name);
+        let manifest = Manifest::new(manifest_header)
+            .add_target(Target::lib(package_name, "src/lib.rs"))
+            .add_dependency(Dependency::new(patch_crate_name, "1.0.86"))
+            .render();
+
+        let _ = create_cargo_manifest(&vendored_itermediray_crate, &manifest);
+        let checksum = Checksum::package_only_manifest(&manifest);
+        checksum.write_to_dir(&vendored_itermediray_crate);
+    }
+    {
+        let vendored_transative_crate = vendor_dir.join("anyhow");
+
+        fs::create_dir(&vendored_transative_crate).expect("failed to create vendor folder");
+
+        let manifest_header = Header::basic("anyhow").version("1.0.86".to_owned());
+        let manifest = Manifest::new(manifest_header)
+            .add_target(Target::lib(package_name, "src/lib.rs"))
+            .render();
+
+        let _ = create_cargo_manifest(&vendored_transative_crate, &manifest);
+        let checksum = Checksum::package_only_manifest(&manifest);
+        checksum.write_to_dir(&vendored_transative_crate);
+    }
+
+    let result = run(
+        working_dir,
+        Cli {
+            command: CargoInvocation::Override {
+                path: patch_folder.into(),
+                frozen: false,
+                locked: false,
+                offline: true,
+                no_deps: false,
+                registry: None,
+            },
+        },
+    );
+
+    expect_that!(result, ok(eq(())));
+
+    let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
+
+    insta::assert_toml_snapshot!(manifest, @r###"
+    '''
+    [package]
+    name = "package_name"
+    version = "0.1.0"
+    edition = "2021"
+
+    # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+    [dependencies]
+    foo = "0.1.0"
+
+    [[bin]]
+    name = "package_name"
+    path = "src/main.rs"
+
+    [patch.crates-io]
+    anyhow = { path = "anyhow" }
+    '''
+    "###);
+}
+
+#[googletest::test]
 fn patch_exists() {
     let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();
@@ -35,7 +273,7 @@ fn patch_exists() {
     let manifest_header = Header::basic(package_name);
     let manifest = Manifest::new(manifest_header)
         // Hack: cargo metadata fails if manifest doesn't contain [[bin]] or [lib] secion
-        .add_bin(Bin::new(package_name, "src/main.rs"))
+        .add_target(Target::bin(package_name, "src/main.rs"))
         .add_dependency(Dependency::new(patch_crate_name, "1.0.86"))
         .render();
 
@@ -89,8 +327,7 @@ fn patch_version_incompatible(dependency_version: &str, patch_version: &str) {
     let package_name = "package-name";
     let manifest_header = Header::basic(package_name);
     let manifest = Manifest::new(manifest_header)
-        // Hack: cargo metadata fails if manifest doesn't contain [[bin]] or [lib] secion
-        .add_bin(Bin::new(package_name, "src/main.rs"))
+        .add_target(Target::bin(package_name, "src/main.rs"))
         .add_dependency(Dependency::new(patch_crate_name, dependency_version))
         .render();
 
@@ -136,8 +373,7 @@ fn missing_required_fields_on_patch(name: Option<&str>, version: Option<&str>) {
     let package_name = "package-name";
     let manifest_header = Header::basic(package_name);
     let manifest = Manifest::new(manifest_header)
-        // Hack: cargo metadata fails if manifest doesn't contain [[bin]] or [lib] secion
-        .add_bin(Bin::new(package_name, "src/main.rs"))
+        .add_target(Target::bin(package_name, "src/main.rs"))
         .add_dependency(Dependency::new(patch_crate_name, "1.0.86"))
         .render();
 
@@ -172,8 +408,7 @@ fn fail_patch_when_project_does_not_depend() {
     let package_name = "package-name";
     let manifest_header = Header::basic(package_name);
     let manifest = Manifest::new(manifest_header)
-        // Hack: cargo metadata fails if manifest doesn't contain [[bin]] or [lib] secion
-        .add_bin(Bin::new(package_name, "src/main.rs"))
+        .add_target(Target::bin(package_name, "src/main.rs"))
         .render();
 
     let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
@@ -353,8 +588,7 @@ fn patch_exists_alt_registry(setup: impl Fn(&Path)) {
     let package_name = "package-name";
     let manifest_header = Header::basic(package_name);
     let manifest = Manifest::new(manifest_header)
-        // Hack: cargo metadata fails if manifest doesn't contain [[bin]] or [lib] secion
-        .add_bin(Bin::new(package_name, "src/main.rs"))
+        .add_target(Target::bin(package_name, "src/main.rs"))
         .add_dependency(Dependency::new(patch_crate_name, "1.0.86").registry("truelayer-rustlayer"))
         .render();
 
@@ -400,6 +634,7 @@ fn override_path(path: impl Into<String>) -> Cli {
             frozen: true,
             locked: false,
             offline: false,
+            no_deps: true,
             registry: None,
         },
     }

@@ -1,3 +1,4 @@
+mod metadata;
 pub mod registry;
 
 use std::{
@@ -6,11 +7,11 @@ use std::{
 };
 
 use anyhow::{bail, Context};
-use cargo_metadata::Dependency;
 use clap::Parser;
 use fs_err as fs;
 
 pub static DEFAULT_REGISTRY: &str = "crates-io";
+pub static DEFAULT_REGISTRY_URL: &str = "https://github.com/rust-lang/crates.io-index";
 pub static CARGO_TOML: &str = "Cargo.toml";
 
 #[derive(Parser, Debug)]
@@ -37,6 +38,8 @@ pub enum CargoInvocation {
         /// Equivalent to specifying both --locked and --offline
         #[arg(long)]
         frozen: bool,
+        #[arg(long, hide = true)]
+        no_deps: bool,
     },
 }
 
@@ -49,6 +52,7 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
                 offline,
                 frozen,
                 registry,
+                no_deps,
             },
     } = args;
 
@@ -69,21 +73,43 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
     let patch_manifest_details =
         ManifestDetails::read(&patch_manifest_toml).context("failed to get details for patch")?;
 
-    let project_deps = get_project_dependencies(&working_dir, locked, offline)
+    let project_deps = metadata::direct_dependencies(&working_dir, locked, offline)
         .context("failed to get dependencies for current project")?;
 
-    let Some(dependeny) = project_deps
+    let mut direct_deps = project_deps
         .iter()
-        .find(|dep| dep.name == patch_manifest_details.name)
-    else {
-        bail!("project does not depend on patch")
+        .filter(|dep| dep.name == patch_manifest_details.name)
+        .peekable();
+
+    let dependency = if direct_deps.peek().is_some() {
+        if let Some(dep) = direct_deps.find(|dependency| match dependency.requirement {
+            Some(ref req) => req.matches(&patch_manifest_details.version),
+            None => false,
+        }) {
+            dep.clone()
+        } else {
+            bail!("patch can not be applied becase version is incompatible")
+        }
+    } else {
+        if no_deps {
+            bail!("dependency can not be found");
+        }
+        let resolved_deps = metadata::resolved_dependencies(&working_dir, locked, offline)
+            .context("failed to get dependencies for current project")?;
+
+        resolved_deps
+            .into_iter()
+            .find(|dep| dep.name == patch_manifest_details.name)
+            .context("dep can not be found")?
     };
 
-    if dependeny.req.matches(&patch_manifest_details.version).not() {
-        bail!("patch can not be applied becase version is incompatible")
-    }
+    let dependency_registry = if dependency.registry == Some(DEFAULT_REGISTRY_URL.to_owned()) {
+        None
+    } else {
+        dependency.registry
+    };
 
-    let registry = if let Some(registry_url) = &dependeny.registry {
+    let registry = if let Some(registry_url) = &dependency_registry {
         let registry_guess =
             registry::get_registry_name_from_url(working_dir.to_path_buf(), registry_url)
                 .context("failed to guess registry")?;
@@ -102,7 +128,7 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
                      uses registry `{}`. 
                      To use the registry, you passed, use `--force`",
                     registry_flag,
-                    dependeny.name,
+                    dependency.name,
                     registry_guess
                 )
             }
@@ -120,18 +146,13 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
                      but dependency `{}` \
                      uses the default registry `{}`",
                     registry,
-                    dependeny.name,
+                    dependency.name,
                     DEFAULT_REGISTRY,
                 )
             };
         }
         DEFAULT_REGISTRY.to_owned()
     };
-
-    println!(
-        "patch dependency '{}' version requirement: '{}' found in project dependencies",
-        dependeny.name, dependeny.req
-    );
 
     let project_manifest_content =
         fs::read_to_string(&project_manifest_path).context("failed to read patch manifest")?;
@@ -160,31 +181,6 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
         .context("failed to write patched `Cargo.toml` file")?;
 
     Ok(())
-}
-
-fn get_project_dependencies(
-    project_dir: impl Into<PathBuf>,
-    locked: bool,
-    offline: bool,
-) -> Result<Vec<Dependency>, anyhow::Error> {
-    let mut cmd = cargo_metadata::MetadataCommand::new();
-    cmd.current_dir(project_dir);
-    cmd.other_options(
-        [
-            locked.then_some("--locked"),
-            offline.then_some("--offline"),
-            Some("--no-deps"),
-        ]
-        .into_iter()
-        .flatten()
-        .map(str::to_owned)
-        .collect::<Vec<_>>(),
-    );
-    let metadata = cmd.exec().context("Unable to run `cargo metadata`")?;
-
-    let root_package = metadata.root_package().unwrap();
-
-    Ok(root_package.dependencies.clone())
 }
 
 fn create_subtable<'a>(
