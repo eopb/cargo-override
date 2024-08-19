@@ -4,7 +4,7 @@ use std::fmt::Write as _;
 pub struct Manifest {
     header: Header,
     dependencies: Dependencies,
-    bin: Option<Bin>,
+    target: Option<Target>,
 }
 
 impl Manifest {
@@ -12,7 +12,7 @@ impl Manifest {
         Self {
             header,
             dependencies: Dependencies::new(),
-            bin: None,
+            target: None,
         }
     }
 
@@ -21,8 +21,8 @@ impl Manifest {
         self
     }
 
-    pub fn add_bin(mut self, bin: Bin) -> Self {
-        self.bin = Some(bin);
+    pub fn add_target(mut self, target: Target) -> Self {
+        self.target = Some(target);
         self
     }
 
@@ -30,15 +30,15 @@ impl Manifest {
         let Self {
             header,
             dependencies,
-            bin,
+            target,
         } = self;
 
         let mut w = String::new();
 
         writeln!(w, "{}", header.render()).unwrap();
         write!(w, "{}", dependencies.render()).unwrap();
-        if let Some(bin) = bin {
-            write!(w, "{}", bin.render()).unwrap();
+        if let Some(target) = target {
+            write!(w, "{}", target.render()).unwrap();
         }
 
         w
@@ -131,25 +131,48 @@ impl Dependencies {
     }
 }
 
-pub struct Bin {
+/// Cargo tries to imply the type of a crate by looking at its `src` directory and seeing if there's a `lib.rs` or a `main.rs`.
+///
+/// We're lazy, so we often do not create these files.
+/// To prevent cargo from choking, we specify a target in the manifest.
+/// Adding a fake path that points to nowhere, ofthen does the trick.
+pub struct Target {
     name: String,
     path: String,
+    r#type: TargetType,
 }
 
-impl Bin {
-    pub fn new(name: impl AsRef<str>, path: impl AsRef<str>) -> Self {
+enum TargetType {
+    Bin,
+    Lib,
+}
+
+impl Target {
+    pub fn bin(name: impl AsRef<str>, path: impl AsRef<str>) -> Self {
         Self {
             name: name.as_ref().to_owned(),
             path: path.as_ref().to_owned(),
+            r#type: TargetType::Bin,
         }
     }
-
-    pub fn render(self) -> String {
+    pub fn lib(name: impl AsRef<str>, path: impl AsRef<str>) -> Self {
+        Self {
+            name: name.as_ref().to_owned(),
+            path: path.as_ref().to_owned(),
+            r#type: TargetType::Lib,
+        }
+    }
+    fn render(self) -> String {
+        let Self { name, path, r#type } = self;
         let mut w = String::new();
         writeln!(w).unwrap();
-        writeln!(w, "[[bin]]").unwrap();
-        writeln!(w, "name = \"{0}\"", self.name).unwrap();
-        writeln!(w, "path = \"{0}\"", self.path).unwrap();
+        match r#type {
+            TargetType::Bin => writeln!(w, "[[bin]]"),
+            TargetType::Lib => writeln!(w, "[lib]"),
+        }
+        .unwrap();
+        writeln!(w, "name = \"{0}\"", name).unwrap();
+        writeln!(w, "path = \"{0}\"", path).unwrap();
         w
     }
 }
@@ -158,6 +181,7 @@ pub struct Dependency {
     name: String,
     version: String,
     registry: Option<String>,
+    registry_index: Option<String>,
 }
 
 impl Dependency {
@@ -166,6 +190,7 @@ impl Dependency {
             name: name.as_ref().to_owned(),
             version: version.as_ref().to_owned(),
             registry: None,
+            registry_index: None,
         }
     }
 
@@ -174,17 +199,45 @@ impl Dependency {
         self
     }
 
-    fn render(self) -> String {
-        let Self {
-            name,
-            version,
-            registry,
-        } = self;
+    pub fn registry_index(mut self, name: impl ToString) -> Dependency {
+        self.registry_index = Some(name.to_string());
+        self
+    }
 
-        if let Some(registry) = registry {
-            format!("{name} = {{ version = \"{version}\", registry = \"{registry}\" }}")
-        } else {
-            format!("{name} = \"{version}\"")
+    fn render(self) -> String {
+        match self {
+            Self {
+                name,
+                version,
+                registry: Some(registry),
+                registry_index: None,
+            } => {
+                format!("{name} = {{ version = \"{version}\", registry = \"{registry}\" }}")
+            }
+            Self {
+                name,
+                version,
+                registry: None,
+                registry_index: Some(registry),
+            } => {
+                format!("{name} = {{ version = \"{version}\", registry-index = \"{registry}\" }}")
+            }
+            Self {
+                name,
+                version,
+                registry: None,
+                registry_index: None,
+            } => {
+                format!("{name} = \"{version}\"")
+            }
+            Self {
+                name: _,
+                version: _,
+                registry: Some(_),
+                registry_index: Some(_),
+            } => {
+                unimplemented!("cannot set bot registry and registry-index")
+            }
         }
     }
 }
