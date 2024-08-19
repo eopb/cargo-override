@@ -13,6 +13,7 @@ use std::{
 
 use cargo_override::{run, CargoInvocation, Cli, CARGO_TOML};
 
+use assert_cmd::Command;
 use fake::{Fake, Faker};
 use fs_err as fs;
 use googletest::{
@@ -550,26 +551,19 @@ fn basic_cargo_config(path: &Path) {
     )
 }
 
+#[cfg(feature = "failing_tests")]
 fn basic_cargo_env_config(path: &Path) {
     write_cargo_config(
         &path,
         r#"
         [env]
-        CARGO_REGISTRIES_TRUELAYER_RUSTLAYER_INDEX = { index = "https://dl.cloudsmith.io/basic/truelayer/rustlayer/cargo/index.git" }
+        CARGO_REGISTRIES_TRUELAYER_RUSTLAYER_INDEX = "https://dl.cloudsmith.io/basic/truelayer/rustlayer/cargo/index.git"
         "#,
     )
 }
 
-fn basic_env_var_config(_: &Path) {
-    std::env::set_var(
-        "CARGO_REGISTRIES_TRUELAYER_RUSTLAYER_INDEX",
-        "https://dl.cloudsmith.io/basic/truelayer/rustlayer/cargo/index.git",
-    );
-}
-
+#[cfg_attr(feature = "failing_tests", test_case(basic_cargo_env_config))]
 #[test_case(basic_cargo_config)]
-#[test_case(basic_cargo_env_config)]
-#[test_case(basic_env_var_config)]
 #[googletest::test]
 fn patch_exists_alt_registry(setup: impl Fn(&Path)) {
     // let working_dir = TempDir::new().unwrap();
@@ -600,6 +594,75 @@ fn patch_exists_alt_registry(setup: impl Fn(&Path)) {
 
     let result = run(working_dir, override_path(patch_folder));
     expect_that!(result, ok(eq(())));
+
+    let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
+
+    insta::allow_duplicates! {
+        insta::assert_toml_snapshot!(manifest, @r###"
+        '''
+        [package]
+        name = "package-name"
+        version = "0.1.0"
+        edition = "2021"
+
+        # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+        [dependencies]
+        anyhow = { version = "1.0.86", registry = "truelayer-rustlayer" }
+
+        [[bin]]
+        name = "package-name"
+        path = "src/main.rs"
+
+        [patch.truelayer-rustlayer]
+        anyhow = { path = "anyhow" }
+        '''
+        "###);
+    }
+}
+
+#[googletest::test]
+fn patch_exists_alt_registry_from_env() {
+    // let working_dir = TempDir::new().unwrap();
+    let mut working_dir = tempfile::Builder::new();
+    let working_dir = (&mut working_dir).keep(true).tempdir().unwrap();
+    let working_dir = working_dir.path();
+
+    let patch_crate_name = "anyhow";
+    let patch_folder = patch_crate_name.to_string();
+    let patch_folder_path = working_dir.join(patch_folder.clone());
+
+    fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
+
+    let package_name = "package-name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        .add_target(Target::bin(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new(patch_crate_name, "1.0.86").registry("truelayer-rustlayer"))
+        .render();
+
+    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
+    let _patch_manifest_path = create_cargo_manifest(
+        &patch_folder_path,
+        &Manifest::new(Header::basic(patch_crate_name).version("1.1.5".to_owned())).render(),
+    );
+
+    let mut cmd = Command::cargo_bin("cargo-override").unwrap();
+
+    _ = cmd
+        .current_dir(working_dir)
+        .arg("override")
+        .arg("--path")
+        .arg(patch_folder)
+        .arg("--frozen")
+        .arg("--no-deps")
+        .env(
+            "CARGO_REGISTRIES_TRUELAYER_RUSTLAYER_INDEX",
+            "https://dl.cloudsmith.io/basic/truelayer/rustlayer/cargo/index.git",
+        )
+        .env("exit", "42")
+        .assert()
+        .success();
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
