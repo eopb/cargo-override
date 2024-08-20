@@ -769,7 +769,8 @@ fn patch_absolute_path() {
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
     insta::with_settings!({filters => vec![
-        (r"\/\.tmp.*\/", "[TEMPDIR]"),
+        (r"tmp\/\.tmp.*\/", "[TEMPDIR]"),
+        (r"var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
     ]}, {
         insta::assert_toml_snapshot!(manifest, @r###"
         '''
@@ -788,7 +789,7 @@ fn patch_absolute_path() {
         path = "src/main.rs"
 
         [patch.crates-io]
-        anyhow = { path = "/tmp[TEMPDIR]anyhow" }
+        anyhow = { path = "/[TEMPDIR]anyhow" }
         '''
         "###);
     });
