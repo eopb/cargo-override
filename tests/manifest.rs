@@ -1,6 +1,7 @@
+//! Builders for generating manifest files for tests
+
 use std::fmt::Write as _;
 
-/// Builder for project manifests used for testing
 pub struct Manifest {
     header: Header,
     dependencies: Dependencies,
@@ -45,6 +46,7 @@ impl Manifest {
     }
 }
 
+/// `[package]` section of manifest
 pub struct Header {
     name: Option<String>,
     version: Option<String>,
@@ -67,14 +69,6 @@ impl Header {
     }
     pub fn version(mut self, version: impl Into<Option<String>>) -> Self {
         self.version = version.into();
-        self
-    }
-    pub fn _edition(mut self, edition: impl Into<Option<String>>) -> Self {
-        self.edition = edition.into();
-        self
-    }
-    pub fn _default_comment(mut self, enable: bool) -> Self {
-        self.default_comment = enable;
         self
     }
     pub fn render(self) -> String {
@@ -106,6 +100,7 @@ impl Header {
     }
 }
 
+/// `[dependencies]` section of manifest
 struct Dependencies(Vec<Dependency>);
 
 impl Dependencies {
@@ -131,11 +126,13 @@ impl Dependencies {
     }
 }
 
-/// Cargo tries to imply the type of a crate by looking at its `src` directory and seeing if there's a `lib.rs` or a `main.rs`.
+/// `[lib]` or `[[bin]]` section for manifest
+///
+/// Cargo tries to imply the type of a crate by looking at its `src` directory and seeing if there's a `lib.rs` or a `main.rs` file.
 ///
 /// We're lazy, so we often do not create these files.
 /// To prevent cargo from choking, we specify a target in the manifest.
-/// Adding a fake path that points to nowhere, ofthen does the trick.
+/// Adding a fake path that points to nowhere is often sufficient.
 pub struct Target {
     name: String,
     path: String,
