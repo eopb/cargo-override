@@ -12,7 +12,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use cargo_override::{run, CargoInvocation, Cli, CARGO_TOML};
+use cargo_override::{cli, run, CargoInvocation, Cli, CARGO_TOML};
 
 use assert_cmd::Command;
 use fake::{Fake, Faker};
@@ -110,19 +110,19 @@ fn patch_transative_on_regisrty() {
     let result = run(
         working_dir,
         Cli {
-            command: CargoInvocation::Override {
-                path: Some(patch_folder.to_owned().into()),
+            command: CargoInvocation::Override(cli::Override {
+                source: cli::Source {
+                    git: None,
+                    path: Some(patch_folder.to_owned().into()),
+                },
                 frozen: false,
                 locked: false,
                 offline: true,
                 no_deps: false,
                 registry: None,
-                branch: None,
-                rev: None,
-                tag: None,
-                git: None,
+                git: Default::default(),
                 manifest_path: None,
-            },
+            }),
         },
     );
 
@@ -227,19 +227,19 @@ fn patch_transative() {
     let result = run(
         working_dir,
         Cli {
-            command: CargoInvocation::Override {
-                path: Some(patch_folder.to_owned().into()),
+            command: CargoInvocation::Override(cli::Override {
+                source: cli::Source {
+                    git: None,
+                    path: Some(patch_folder.to_owned().into()),
+                },
                 frozen: false,
                 locked: false,
                 offline: true,
                 no_deps: false,
                 registry: None,
-                branch: None,
-                rev: None,
-                tag: None,
-                git: None,
+                git: Default::default(),
                 manifest_path: None,
-            },
+            }),
         },
     );
 
@@ -629,19 +629,19 @@ fn project_is_workspace() {
     let result = run(
         working_dir,
         Cli {
-            command: CargoInvocation::Override {
-                path: Some(patch_folder.to_owned().into()),
+            command: CargoInvocation::Override(cli::Override {
+                source: cli::Source {
+                    git: None,
+                    path: Some(patch_folder.to_owned().into()),
+                },
                 frozen: true,
                 locked: false,
                 offline: false,
                 no_deps: true,
                 registry: None,
-                branch: None,
-                rev: None,
-                tag: None,
-                git: None,
+                git: Default::default(),
                 manifest_path: Some(workspace_folder_manifest_path.clone().try_into().unwrap()),
-            },
+            }),
         },
     );
 
@@ -693,19 +693,19 @@ fn patch_manifest_in_subdir() {
     let result = run(
         working_dir,
         Cli {
-            command: CargoInvocation::Override {
-                path: Some(patch_folder.to_owned().into()),
+            command: CargoInvocation::Override(cli::Override {
+                source: cli::Source {
+                    git: None,
+                    path: Some(patch_folder.to_owned().into()),
+                },
                 frozen: true,
                 locked: false,
                 offline: false,
                 no_deps: true,
                 registry: None,
-                branch: None,
-                rev: None,
-                tag: None,
-                git: None,
+                git: Default::default(),
                 manifest_path: Some(project_manifest_path.clone().try_into().unwrap()),
-            },
+            }),
         },
     );
     expect_that!(result, ok(eq(())));
@@ -1163,18 +1163,18 @@ fn patch_exists_alt_registry_from_env() {
 
 fn override_path(path: &str) -> Cli {
     Cli {
-        command: CargoInvocation::Override {
-            path: Some(path.to_owned().into()),
+        command: CargoInvocation::Override(cli::Override {
+            source: cli::Source {
+                git: None,
+                path: Some(path.to_owned().into()),
+            },
             frozen: true,
             locked: false,
             offline: false,
             no_deps: true,
             registry: None,
-            branch: None,
-            rev: None,
-            tag: None,
-            git: None,
+            git: Default::default(),
             manifest_path: None,
-        },
+        }),
     }
 }
