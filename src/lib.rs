@@ -30,7 +30,7 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
     } = args.try_into()?;
 
     let path = match &mode {
-        context::Mode::Path(ref path) => working_dir.join(&path),
+        context::Mode::Path(ref path) => working_dir.join(path),
         context::Mode::Git { url, reference } => {
             git::get_source(working_dir, url, reference.clone())?
         }
@@ -50,7 +50,7 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
 
     let project_manifest_path = project_manifest(manifest_path, cargo)?;
 
-    let project_deps = metadata::direct_dependencies(&manifest_path, cargo)
+    let project_deps = metadata::direct_dependencies(manifest_path, cargo)
         .context("failed to get dependencies for current project")?;
 
     let mut direct_deps = project_deps
@@ -71,7 +71,7 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
         if cargo.include_deps.not() {
             bail!("dependency can not be found");
         }
-        let resolved_deps = metadata::resolved_dependencies(&manifest_path, cargo)
+        let resolved_deps = metadata::resolved_dependencies(manifest_path, cargo)
             .context("failed to get dependencies for current project")?;
 
         resolved_deps
@@ -141,7 +141,7 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
     };
 
     let project_manifest_toml = toml::patch_manifest(
-        &working_dir,
+        working_dir,
         &project_manifest_content,
         &project_path,
         &patch_manifest.name,
@@ -149,7 +149,7 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
         &mode,
     )?;
 
-    fs::write(&project_manifest_path, project_manifest_toml.to_string())
+    fs::write(&project_manifest_path, &project_manifest_toml)
         .context("failed to write patched `Cargo.toml` file")?;
 
     Ok(())

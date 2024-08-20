@@ -22,7 +22,7 @@ pub fn patch_manifest(
 
     let patch_table = create_subtable(manifest_table, "patch", true)?;
 
-    let registry_table = create_subtable(patch_table, &registry, false)?;
+    let registry_table = create_subtable(patch_table, registry, false)?;
 
     toml_edit::Table::insert(
         registry_table,
@@ -38,8 +38,8 @@ fn source(working_dir: &Path, manifest_directory: &Path, mode: &context::Mode) -
         context::Mode::Path(relative_path) => {
             let path = if manifest_directory != working_dir {
                 diff_paths(
-                    path::absolute(&working_dir.join(relative_path)).unwrap(),
-                    path::absolute(&manifest_directory).unwrap(),
+                    path::absolute(working_dir.join(relative_path)).unwrap(),
+                    path::absolute(manifest_directory).unwrap(),
                 )
                 .expect("both paths are absolute")
             } else {

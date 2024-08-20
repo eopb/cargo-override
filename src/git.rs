@@ -22,7 +22,7 @@ pub fn get_source(
     let global_context = GlobalContext::new(
         shell,
         working_dir.to_path_buf(),
-        cargo_home_with_cwd(&working_dir).unwrap(),
+        cargo_home_with_cwd(working_dir).unwrap(),
     );
 
     let package_lock = global_context
@@ -30,7 +30,7 @@ pub fn get_source(
         .unwrap();
 
     let mut git_source =
-        GitSource::new(SourceId::for_git(&url, reference).unwrap(), &global_context).unwrap();
+        GitSource::new(SourceId::for_git(url, reference).unwrap(), &global_context).unwrap();
 
     let packages = git_source.read_packages().unwrap();
 

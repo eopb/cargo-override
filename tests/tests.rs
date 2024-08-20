@@ -37,7 +37,7 @@ fn patch_transative_on_regisrty() {
     fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
 
     write_cargo_config(
-        &working_dir,
+        working_dir,
         r#"
         [registries]
         truelayer-rustlayer = { index = "https://dl.cloudsmith.io/basic/truelayer/rustlayer/cargo/index.git" }
@@ -165,7 +165,7 @@ fn patch_transative() {
     fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
 
     write_cargo_config(
-        &working_dir,
+        working_dir,
         r#"
         [source.crates-io]
         replace-with = "vendored-sources"
@@ -934,7 +934,7 @@ fn patch_exists_put_project_does_not_have_dep() {
 
     let manifest_before = fs::read_to_string(&working_dir_manifest_path).unwrap();
 
-    let result = run(working_dir, override_path(&patch_folder));
+    let result = run(working_dir, override_path(patch_folder));
     expect_that!(result, err(anything()));
 
     let manifest_after = fs::read_to_string(working_dir_manifest_path).unwrap();
@@ -1009,7 +1009,7 @@ fn write_cargo_config(path: &Path, toml: &str) {
 }
 fn basic_cargo_config(path: &Path) {
     write_cargo_config(
-        &path,
+        path,
         r#"
         [registries]
         truelayer-rustlayer = { index = "https://dl.cloudsmith.io/basic/truelayer/rustlayer/cargo/index.git" }
@@ -1034,7 +1034,7 @@ fn basic_cargo_env_config(path: &Path) {
 fn patch_exists_alt_registry(setup: impl Fn(&Path)) {
     // let working_dir = TempDir::new().unwrap();
     let mut working_dir = tempfile::Builder::new();
-    let working_dir = (&mut working_dir).keep(true).tempdir().unwrap();
+    let working_dir = working_dir.keep(true).tempdir().unwrap();
     let working_dir = working_dir.path();
 
     setup(working_dir);
@@ -1093,7 +1093,7 @@ fn patch_exists_alt_registry(setup: impl Fn(&Path)) {
 fn patch_exists_alt_registry_from_env() {
     // let working_dir = TempDir::new().unwrap();
     let mut working_dir = tempfile::Builder::new();
-    let working_dir = (&mut working_dir).keep(true).tempdir().unwrap();
+    let working_dir = working_dir.keep(true).tempdir().unwrap();
     let working_dir = working_dir.path();
 
     let patch_crate_name = "anyhow";
