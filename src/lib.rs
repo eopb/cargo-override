@@ -77,7 +77,12 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
         resolved_deps
             .into_iter()
             .find(|dep| dep.name == patch_manifest.name)
-            .context("dep can not be found")?
+            .with_context(|| {
+                format!(
+                    "Unable to find dependency on crate \"{}\"",
+                    patch_manifest.name
+                )
+            })?
     };
 
     let dependency_registry = if dependency.registry == Some(DEFAULT_REGISTRY_URL.to_owned()) {
