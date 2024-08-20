@@ -1,4 +1,4 @@
-use crate::{CargoInvocation, Cli};
+use crate::{cli, CargoInvocation, Cli};
 
 use std::ops::Not;
 
@@ -42,19 +42,16 @@ impl TryFrom<Cli> for Context {
     fn try_from(
         Cli {
             command:
-                CargoInvocation::Override {
-                    path,
+                CargoInvocation::Override(cli::Override {
                     locked,
                     offline,
                     frozen,
                     registry,
                     no_deps,
-                    git,
-                    branch,
-                    tag,
-                    rev,
                     manifest_path,
-                },
+                    source: cli::Source { path, git },
+                    git: cli::Git { branch, tag, rev },
+                }),
         }: Cli,
     ) -> Result<Self, Self::Error> {
         // `--frozen` implies `--locked` and `--offline`
