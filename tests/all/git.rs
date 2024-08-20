@@ -275,7 +275,6 @@ fn override_redact_crate(
             .arg("https://github.com/eopb/redact"),
     )
     .arg("--frozen")
-    .arg("--no-deps")
     .env_remove("RUST_BACKTRACE")
     .env("CARGO_HOME", working_dir);
 
