@@ -1,5 +1,8 @@
-mod checksum;
-mod manifest;
+pub mod checksum;
+#[path = "cli.rs"]
+mod cli_tests;
+mod git;
+pub mod manifest;
 
 use checksum::Checksum;
 use manifest::{Dependency, Header, Manifest, Target};
@@ -12,15 +15,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use cargo_override::{cli, run, CargoInvocation, Cli, CARGO_TOML};
+use cargo_override::CARGO_TOML;
 
 use assert_cmd::Command;
 use fake::{Fake, Faker};
 use fs_err as fs;
-use googletest::{
-    expect_that,
-    matchers::{anything, displays_as, eq, err, ok},
-};
+use googletest::{expect_that, matchers::eq};
 use tempfile::TempDir;
 use test_case::test_case;
 
@@ -107,26 +107,19 @@ fn patch_transative_on_regisrty() {
         checksum.write_to_dir(&vendored_transative_crate);
     }
 
-    let result = run(
-        working_dir,
-        Cli {
-            command: CargoInvocation::Override(cli::Override {
-                source: cli::Source {
-                    git: None,
-                    path: Some(patch_folder.to_owned().into()),
-                },
-                frozen: false,
-                locked: false,
-                offline: true,
-                no_deps: false,
-                registry: None,
-                git: Default::default(),
-                manifest_path: None,
-            }),
-        },
-    );
+    let mut command = override_path(&patch_folder, working_dir, |command| command);
 
-    expect_that!(result, ok(eq(())));
+    let assert = command.assert();
+
+    let output = assert.get_output();
+
+    let stdout = String::from_utf8(output.stdout.clone()).unwrap();
+    let stderr = String::from_utf8(output.stderr.clone()).unwrap();
+
+    assert.success();
+
+    insta::assert_snapshot!(stdout, @"");
+    insta::assert_snapshot!(stderr, @"");
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -224,26 +217,19 @@ fn patch_transative() {
         checksum.write_to_dir(&vendored_transative_crate);
     }
 
-    let result = run(
-        working_dir,
-        Cli {
-            command: CargoInvocation::Override(cli::Override {
-                source: cli::Source {
-                    git: None,
-                    path: Some(patch_folder.to_owned().into()),
-                },
-                frozen: false,
-                locked: false,
-                offline: true,
-                no_deps: false,
-                registry: None,
-                git: Default::default(),
-                manifest_path: None,
-            }),
-        },
-    );
+    let mut command = override_path(&patch_folder, working_dir, |command| command);
 
-    expect_that!(result, ok(eq(())));
+    let assert = command.assert();
+
+    let output = assert.get_output();
+
+    let stdout = String::from_utf8(output.stdout.clone()).unwrap();
+    let stderr = String::from_utf8(output.stderr.clone()).unwrap();
+
+    assert.success();
+
+    insta::assert_snapshot!(stdout, @"");
+    insta::assert_snapshot!(stderr, @"");
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -267,195 +253,6 @@ fn patch_transative() {
     anyhow = { path = "anyhow" }
     '''
     "###);
-}
-
-#[googletest::test]
-fn git_patch_branch() {
-    let working_dir = TempDir::new().unwrap();
-    let working_dir = working_dir.path();
-
-    let package_name = "package-name";
-    let manifest_header = Header::basic(package_name);
-    let manifest = Manifest::new(manifest_header)
-        .add_target(Target::bin(package_name, "src/main.rs"))
-        .add_dependency(Dependency::new("redact", "0.1.0"))
-        .render();
-
-    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
-
-    let mut cmd = Command::cargo_bin("cargo-override").unwrap();
-    _ = cmd
-        .current_dir(working_dir)
-        .arg("override")
-        .arg("--git")
-        .arg("https://github.com/eopb/redact")
-        .arg("--branch")
-        .arg("main")
-        .arg("--frozen")
-        .arg("--no-deps")
-        .env("CARGO_HOME", working_dir)
-        .env("exit", "42")
-        .assert()
-        .success();
-
-    let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
-
-    insta::assert_toml_snapshot!(manifest, @r###"
-    '''
-    [package]
-    name = "package-name"
-    version = "0.1.0"
-    edition = "2021"
-
-    # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-    [dependencies]
-    redact = "0.1.0"
-
-    [[bin]]
-    name = "package-name"
-    path = "src/main.rs"
-
-    [patch.crates-io]
-    redact = { git = "https://github.com/eopb/redact", branch = "main" }
-    '''
-    "###);
-}
-
-#[googletest::test]
-fn git_patch_tag() {
-    let working_dir = TempDir::new().unwrap();
-    let working_dir = working_dir.path();
-
-    let package_name = "package-name";
-    let manifest_header = Header::basic(package_name);
-    let manifest = Manifest::new(manifest_header)
-        .add_target(Target::bin(package_name, "src/main.rs"))
-        .add_dependency(Dependency::new("redact", "0.1.0"))
-        .render();
-
-    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
-
-    let mut cmd = Command::cargo_bin("cargo-override").unwrap();
-    _ = cmd
-        .current_dir(working_dir)
-        .arg("override")
-        .arg("--git")
-        .arg("https://github.com/eopb/redact")
-        .arg("--tag")
-        .arg("v0.1.10")
-        .arg("--frozen")
-        .arg("--no-deps")
-        .env("CARGO_HOME", working_dir)
-        .env("exit", "42")
-        .assert()
-        .success();
-
-    let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
-
-    insta::assert_toml_snapshot!(manifest, @r###"
-    '''
-    [package]
-    name = "package-name"
-    version = "0.1.0"
-    edition = "2021"
-
-    # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-    [dependencies]
-    redact = "0.1.0"
-
-    [[bin]]
-    name = "package-name"
-    path = "src/main.rs"
-
-    [patch.crates-io]
-    redact = { git = "https://github.com/eopb/redact", tag = "v0.1.10" }
-    '''
-    "###);
-}
-
-#[googletest::test]
-fn git_patch_rev() {
-    let working_dir = TempDir::new().unwrap();
-    let working_dir = working_dir.path();
-
-    let package_name = "package-name";
-    let manifest_header = Header::basic(package_name);
-    let manifest = Manifest::new(manifest_header)
-        .add_target(Target::bin(package_name, "src/main.rs"))
-        .add_dependency(Dependency::new("redact", "0.1.0"))
-        .render();
-
-    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
-
-    let mut cmd = Command::cargo_bin("cargo-override").unwrap();
-    _ = cmd
-        .current_dir(working_dir)
-        .arg("override")
-        .arg("--git")
-        .arg("https://github.com/eopb/redact")
-        .arg("--rev")
-        .arg("931019c4d39af01a7ecfcb090f40f64bcfb1f295")
-        .arg("--frozen")
-        .arg("--no-deps")
-        .env("CARGO_HOME", working_dir)
-        .env("exit", "42")
-        .assert()
-        .success();
-
-    let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
-
-    insta::assert_toml_snapshot!(manifest, @r###"
-    '''
-    [package]
-    name = "package-name"
-    version = "0.1.0"
-    edition = "2021"
-
-    # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-    [dependencies]
-    redact = "0.1.0"
-
-    [[bin]]
-    name = "package-name"
-    path = "src/main.rs"
-
-    [patch.crates-io]
-    redact = { git = "https://github.com/eopb/redact", rev = "931019c4d39af01a7ecfcb090f40f64bcfb1f295" }
-    '''
-    "###);
-}
-
-#[googletest::test]
-fn git_patch_version_missmatch() {
-    let working_dir = TempDir::new().unwrap();
-    let working_dir = working_dir.path();
-
-    let package_name = "package-name";
-    let manifest_header = Header::basic(package_name);
-    let manifest = Manifest::new(manifest_header)
-        .add_target(Target::bin(package_name, "src/main.rs"))
-        .add_dependency(Dependency::new("redact", "0.2.0"))
-        .render();
-
-    let _ = create_cargo_manifest(working_dir, &manifest);
-
-    let mut cmd = Command::cargo_bin("cargo-override").unwrap();
-    _ = cmd
-        .current_dir(working_dir)
-        .arg("override")
-        .arg("--git")
-        .arg("https://github.com/eopb/redact")
-        .arg("--tag")
-        .arg("0.1.0-pre0")
-        .arg("--frozen")
-        .arg("--no-deps")
-        .env("CARGO_HOME", working_dir)
-        .env("exit", "42")
-        .assert()
-        .failure();
 }
 
 #[googletest::test]
@@ -484,8 +281,19 @@ fn patch_exists() {
             .render(),
     );
 
-    let result = run(working_dir, override_path(&patch_folder));
-    expect_that!(result, ok(eq(())));
+    let mut command = override_path(&patch_folder, working_dir, |command| command);
+
+    let assert = command.assert();
+
+    let output = assert.get_output();
+
+    let stdout = String::from_utf8(output.stdout.clone()).unwrap();
+    let stderr = String::from_utf8(output.stderr.clone()).unwrap();
+
+    assert.success();
+
+    insta::assert_snapshot!(stdout, @"");
+    insta::assert_snapshot!(stderr, @"");
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -557,8 +365,19 @@ fn patch_uses_workspace_version_inheritance() {
         "#,
     );
 
-    let result = run(working_dir, override_path("workspace/anyhow"));
-    expect_that!(result, ok(eq(())));
+    let mut command = override_path("workspace/anyhow", working_dir, |command| command);
+
+    let assert = command.assert();
+
+    let output = assert.get_output();
+
+    let stdout = String::from_utf8(output.stdout.clone()).unwrap();
+    let stderr = String::from_utf8(output.stderr.clone()).unwrap();
+
+    assert.success();
+
+    insta::assert_snapshot!(stdout, @"");
+    insta::assert_snapshot!(stderr, @"");
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -626,26 +445,23 @@ fn project_is_workspace() {
             .render(),
     );
 
-    let result = run(
-        working_dir,
-        Cli {
-            command: CargoInvocation::Override(cli::Override {
-                source: cli::Source {
-                    git: None,
-                    path: Some(patch_folder.to_owned().into()),
-                },
-                frozen: true,
-                locked: false,
-                offline: false,
-                no_deps: true,
-                registry: None,
-                git: Default::default(),
-                manifest_path: Some(workspace_folder_manifest_path.clone().try_into().unwrap()),
-            }),
-        },
-    );
+    let mut command = override_path(&patch_folder, working_dir, |command| {
+        command
+            .arg("--manifest-path")
+            .arg(workspace_folder_manifest_path.as_os_str())
+    });
 
-    expect_that!(result, ok(eq(())));
+    let assert = command.assert();
+
+    let output = assert.get_output();
+
+    let stdout = String::from_utf8(output.stdout.clone()).unwrap();
+    let stderr = String::from_utf8(output.stderr.clone()).unwrap();
+
+    assert.success();
+
+    insta::assert_snapshot!(stdout, @"");
+    insta::assert_snapshot!(stderr, @"");
 
     let manifest = fs::read_to_string(workspace_folder_manifest_path).unwrap();
 
@@ -690,25 +506,23 @@ fn patch_manifest_in_subdir() {
             .render(),
     );
 
-    let result = run(
-        working_dir,
-        Cli {
-            command: CargoInvocation::Override(cli::Override {
-                source: cli::Source {
-                    git: None,
-                    path: Some(patch_folder.to_owned().into()),
-                },
-                frozen: true,
-                locked: false,
-                offline: false,
-                no_deps: true,
-                registry: None,
-                git: Default::default(),
-                manifest_path: Some(project_manifest_path.clone().try_into().unwrap()),
-            }),
-        },
-    );
-    expect_that!(result, ok(eq(())));
+    let mut command = override_path(&patch_folder, working_dir, |command| {
+        command
+            .arg("--manifest-path")
+            .arg(project_manifest_path.as_os_str())
+    });
+
+    let assert = command.assert();
+
+    let output = assert.get_output();
+
+    let stdout = String::from_utf8(output.stdout.clone()).unwrap();
+    let stderr = String::from_utf8(output.stderr.clone()).unwrap();
+
+    assert.success();
+
+    insta::assert_snapshot!(stdout, @"");
+    insta::assert_snapshot!(stderr, @"");
 
     let manifest = fs::read_to_string(project_manifest_path).unwrap();
 
@@ -760,11 +574,23 @@ fn patch_absolute_path() {
             .render(),
     );
 
-    let result = run(
+    let mut command = override_path(
+        path::absolute(patch_folder_path).unwrap().to_str().unwrap(),
         working_dir,
-        override_path(path::absolute(patch_folder_path).unwrap().to_str().unwrap()),
+        |command| command,
     );
-    expect_that!(result, ok(eq(())));
+
+    let assert = command.assert();
+
+    let output = assert.get_output();
+
+    let stdout = String::from_utf8(output.stdout.clone()).unwrap();
+    let stderr = String::from_utf8(output.stderr.clone()).unwrap();
+
+    assert.success();
+
+    insta::assert_snapshot!(stdout, @"");
+    insta::assert_snapshot!(stderr, @"");
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -824,14 +650,30 @@ fn patch_version_incompatible(dependency_version: &str, patch_version: &str) {
                 .name(patch_crate_name.to_owned())
                 .version(patch_version.to_owned()),
         )
+        .add_target(Target::lib("patch_pacakge", "src/lib.rs"))
         .render(),
     );
 
     let manifest_before = fs::read_to_string(&working_dir_manifest_path).unwrap();
 
-    let result = run(working_dir, override_path(&patch_folder));
+    let mut command = override_path(&patch_folder, working_dir, |command| command);
 
-    expect_that!(result, err(anything()));
+    let assert = command.assert();
+
+    let output = assert.get_output();
+
+    let stdout = String::from_utf8(output.stdout.clone()).unwrap();
+    let stderr = String::from_utf8(output.stderr.clone()).unwrap();
+
+    assert.failure();
+
+    insta::allow_duplicates! {
+        insta::assert_snapshot!(stdout, @"");
+        insta::assert_snapshot!(stderr, @r###"
+            error: patch can not be applied becase version is incompatible
+            "###
+        );
+    }
 
     let manifest_after = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -870,42 +712,11 @@ fn missing_required_fields_on_patch(name: Option<&str>, version: Option<&str>) {
 
     let manifest_before = fs::read_to_string(&working_dir_manifest_path).unwrap();
 
-    let result = run(working_dir, override_path(&patch_folder));
-    expect_that!(result, err(anything()));
+    let mut command = override_path(&patch_folder, working_dir, |command| command);
 
-    let manifest_after = fs::read_to_string(working_dir_manifest_path).unwrap();
+    let assert = command.assert();
 
-    expect_that!(manifest_before, eq(manifest_after));
-}
-
-#[googletest::test]
-fn fail_patch_when_project_does_not_depend() {
-    let working_dir = TempDir::new().unwrap();
-    let working_dir = working_dir.path();
-
-    let patch_crate_name = "anyhow";
-
-    let patch_folder = patch_crate_name.to_string();
-    let patch_folder_path = working_dir.join(patch_folder.clone());
-
-    fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
-
-    let package_name = "package-name";
-    let manifest_header = Header::basic(package_name);
-    let manifest = Manifest::new(manifest_header)
-        .add_target(Target::bin(package_name, "src/main.rs"))
-        .render();
-
-    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
-    let _patch_manifest_path = create_cargo_manifest(
-        &patch_folder_path,
-        &Manifest::new(Header::basic(patch_crate_name)).render(),
-    );
-
-    let manifest_before = fs::read_to_string(&working_dir_manifest_path).unwrap();
-
-    let result = run(working_dir, override_path(&patch_folder));
-    expect_that!(result, err(anything()));
+    assert.failure();
 
     let manifest_after = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -915,7 +726,7 @@ fn fail_patch_when_project_does_not_depend() {
 /// When we add a patch we want to make sure that we're actually depending on the dependency we're
 /// patching.
 #[googletest::test]
-fn patch_exists_put_project_does_not_have_dep() {
+fn patch_exists_put_project_does_not_depend_on_it() {
     let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();
 
@@ -926,31 +737,38 @@ fn patch_exists_put_project_does_not_have_dep() {
 
     let working_dir_manifest_path = create_cargo_manifest(
         working_dir,
-        &Manifest::new(Header::basic("test-package")).render(),
+        &Manifest::new(Header::basic("test-package"))
+            .add_target(Target::bin("test-package", "src/main.rs"))
+            .render(),
     );
     let _patch_manifest_path = create_cargo_manifest(
         &patch_folder_path,
-        &Manifest::new(Header::basic("patch-package")).render(),
+        &Manifest::new(Header::basic("patch_package"))
+            .add_target(Target::lib("patch_pacakge", "src/lib.rs"))
+            .render(),
     );
 
     let manifest_before = fs::read_to_string(&working_dir_manifest_path).unwrap();
 
-    let result = run(working_dir, override_path(patch_folder));
-    expect_that!(result, err(anything()));
+    let mut command = override_path(&patch_folder, working_dir, |command| command);
+
+    let assert = command.assert();
+
+    let output = assert.get_output();
+
+    let stdout = String::from_utf8(output.stdout.clone()).unwrap();
+    let stderr = String::from_utf8(output.stderr.clone()).unwrap();
+
+    assert.failure();
+
+    insta::assert_snapshot!(stdout, @"");
+    insta::assert_snapshot!(stderr, @r###"
+    error: Unable to find dependency on crate "patch_package"
+    "###);
 
     let manifest_after = fs::read_to_string(working_dir_manifest_path).unwrap();
 
     expect_that!(manifest_before, eq(manifest_after));
-}
-
-fn create_cargo_manifest(dir: &Path, content: &str) -> PathBuf {
-    let manifest_path = dir.join(CARGO_TOML);
-    let mut manifest = File::create_new(&manifest_path).expect("failed to create manifest file");
-    manifest
-        .write_all(content.as_bytes())
-        .expect("failed to write manifest file");
-    manifest.flush().expect("failed to flush manifest file");
-    manifest_path
 }
 
 #[googletest::test]
@@ -967,9 +785,34 @@ fn missing_manifest() {
 
     File::create_new(patch_manifest).expect("failed to create patch manifest file");
 
-    let result = run(working_dir, override_path(&patch_folder));
+    let mut command = override_path(&patch_folder, working_dir, |command| command);
 
-    expect_that!(result, err(displays_as(anything())))
+    let assert = command.assert();
+
+    let output = assert.get_output();
+
+    let stdout = String::from_utf8(output.stdout.clone()).unwrap();
+    let stderr = String::from_utf8(output.stderr.clone()).unwrap();
+
+    assert.failure();
+
+    insta::with_settings!({filters => vec![
+        (r"tmp\/\.tmp.*\/", "[TEMPDIR]"),
+        (r"var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
+        (&patch_folder, "[PATCH]"),
+    ]}, {
+        insta::assert_snapshot!(stdout, @"");
+        insta::assert_snapshot!(stderr, @r###"
+        error: Unable to run `cargo metadata`
+
+        Caused by:
+            `cargo metadata` exited with an error: error: failed to parse manifest at `/[TEMPDIR]Cargo.toml`
+            
+            Caused by:
+              virtual manifests must be configured with [workspace]
+            
+        "###);
+    });
 }
 
 #[googletest::test]
@@ -979,9 +822,31 @@ fn patch_path_doesnt_exist() {
 
     let patch_folder: String = Faker.fake();
 
-    let result = run(working_dir, override_path(&patch_folder.clone()));
+    let mut command = override_path(&patch_folder, working_dir, |command| command);
 
-    expect_that!(result, err(displays_as(anything())))
+    let assert = command.assert();
+
+    let output = assert.get_output();
+
+    let stdout = String::from_utf8(output.stdout.clone()).unwrap();
+    let stderr = String::from_utf8(output.stderr.clone()).unwrap();
+
+    assert.failure();
+
+    insta::with_settings!({filters => vec![
+        (r"tmp\/\.tmp.*\/", "[TEMPDIR]"),
+        (r"var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
+        (&patch_folder, "[PATCH]"),
+    ]}, {
+        insta::assert_snapshot!(stdout, @"");
+        insta::assert_snapshot!(stderr, @r###"
+        error: Unable to run `cargo metadata`
+
+        Caused by:
+            0: failed to start `cargo metadata`: No such file or directory (os error 2)
+            1: No such file or directory (os error 2)
+        "###);
+    });
 }
 
 #[googletest::test]
@@ -994,20 +859,33 @@ fn patch_manifest_doesnt_exist() {
 
     fs::create_dir(patch_folder_path).expect("failed to create patch folder");
 
-    let result = run(working_dir, override_path(&patch_folder.clone()));
+    let mut command = override_path(&patch_folder, working_dir, |command| command);
 
-    expect_that!(result, err(displays_as(anything())))
+    let assert = command.assert();
+
+    let output = assert.get_output();
+
+    let stdout = String::from_utf8(output.stdout.clone()).unwrap();
+    let stderr = String::from_utf8(output.stderr.clone()).unwrap();
+
+    assert.failure();
+
+    insta::with_settings!({filters => vec![
+        (r"tmp\/\.tmp.*\/", "[TEMPDIR]"),
+        (r"var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
+        (&patch_folder, "[PATCH]"),
+    ]}, {
+        insta::assert_snapshot!(stdout, @"");
+        insta::assert_snapshot!(stderr, @r###"
+        error: Unable to run `cargo metadata`
+
+        Caused by:
+            `cargo metadata` exited with an error: error: could not find `Cargo.toml` in `/[TEMPDIR][PATCH]` or any parent directory
+            
+        "###);
+    });
 }
 
-fn write_cargo_config(path: &Path, toml: &str) {
-    let cargo_config_dir = path.join(".cargo");
-
-    fs::create_dir(&cargo_config_dir).expect("failed to create `.cargo` folder");
-
-    let cargo_config = cargo_config_dir.join("config.toml");
-
-    fs::write(&cargo_config, toml).expect("failed to write `.cargo/config.toml`");
-}
 fn basic_cargo_config(path: &Path) {
     write_cargo_config(
         path,
@@ -1061,8 +939,21 @@ fn patch_exists_alt_registry(setup: impl Fn(&Path)) {
             .render(),
     );
 
-    let result = run(working_dir, override_path(&patch_folder));
-    expect_that!(result, ok(eq(())));
+    let mut command = override_path(&patch_folder, working_dir, |command| command);
+
+    let assert = command.assert();
+
+    let output = assert.get_output();
+
+    let stdout = String::from_utf8(output.stdout.clone()).unwrap();
+    let stderr = String::from_utf8(output.stderr.clone()).unwrap();
+
+    assert.success();
+
+    insta::allow_duplicates! {
+        insta::assert_snapshot!(stdout, @"");
+        insta::assert_snapshot!(stderr, @"");
+    }
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -1092,9 +983,7 @@ fn patch_exists_alt_registry(setup: impl Fn(&Path)) {
 
 #[googletest::test]
 fn patch_exists_alt_registry_from_env() {
-    // let working_dir = TempDir::new().unwrap();
-    let mut working_dir = tempfile::Builder::new();
-    let working_dir = working_dir.keep(true).tempdir().unwrap();
+    let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();
 
     let patch_crate_name = "anyhow";
@@ -1118,22 +1007,24 @@ fn patch_exists_alt_registry_from_env() {
             .render(),
     );
 
-    let mut cmd = Command::cargo_bin("cargo-override").unwrap();
-
-    _ = cmd
-        .current_dir(working_dir)
-        .arg("override")
-        .arg("--path")
-        .arg(patch_folder)
-        .arg("--frozen")
-        .arg("--no-deps")
-        .env(
+    let mut command = override_path(&patch_folder, working_dir, |command| {
+        command.env(
             "CARGO_REGISTRIES_TRUELAYER_RUSTLAYER_INDEX",
             "https://dl.cloudsmith.io/basic/truelayer/rustlayer/cargo/index.git",
         )
-        .env("exit", "42")
-        .assert()
-        .success();
+    });
+
+    let assert = command.assert();
+
+    let output = assert.get_output();
+
+    let stdout = String::from_utf8(output.stdout.clone()).unwrap();
+    let stderr = String::from_utf8(output.stderr.clone()).unwrap();
+
+    assert.success();
+
+    insta::assert_snapshot!(stdout, @"");
+    insta::assert_snapshot!(stderr, @"");
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -1161,20 +1052,40 @@ fn patch_exists_alt_registry_from_env() {
     }
 }
 
-fn override_path(path: &str) -> Cli {
-    Cli {
-        command: CargoInvocation::Override(cli::Override {
-            source: cli::Source {
-                git: None,
-                path: Some(path.to_owned().into()),
-            },
-            frozen: true,
-            locked: false,
-            offline: false,
-            no_deps: true,
-            registry: None,
-            git: Default::default(),
-            manifest_path: None,
-        }),
-    }
+fn write_cargo_config(path: &Path, toml: &str) {
+    let cargo_config_dir = path.join(".cargo");
+
+    fs::create_dir(&cargo_config_dir).expect("failed to create `.cargo` folder");
+
+    let cargo_config = cargo_config_dir.join("config.toml");
+
+    fs::write(&cargo_config, toml).expect("failed to write `.cargo/config.toml`");
+}
+
+fn create_cargo_manifest(dir: &Path, content: &str) -> PathBuf {
+    let manifest_path = dir.join(CARGO_TOML);
+    let mut manifest = File::create_new(&manifest_path).expect("failed to create manifest file");
+    manifest
+        .write_all(content.as_bytes())
+        .expect("failed to write manifest file");
+    manifest.flush().expect("failed to flush manifest file");
+    manifest_path
+}
+
+fn override_path(
+    path: &str,
+    working_dir: &Path,
+    args: impl Fn(&mut Command) -> &mut Command,
+) -> Command {
+    let mut cmd = Command::cargo_bin("cargo-override").unwrap();
+    args(
+        cmd.current_dir(working_dir)
+            .arg("override")
+            .arg("--path")
+            .arg(path),
+    )
+    .env("CARGO_HOME", working_dir)
+    .env_remove("RUST_BACKTRACE");
+
+    cmd
 }
