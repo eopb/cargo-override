@@ -2,9 +2,49 @@ use std::{ops::Not, path::PathBuf};
 
 use anyhow::{bail, Context};
 use cargo::core::PackageIdSpec;
-use semver::VersionReq;
+use semver::{Version, VersionReq};
 
-/// For more information, see <https://doc.rust-lang.org/book/ch07-01-packages-and-crates.html>.
+#[derive(Clone)]
+pub struct Crate {
+    pub name: String,
+    pub version: Version,
+}
+
+pub fn crate_details(
+    project_dir: impl Into<PathBuf>,
+    locked: bool,
+    offline: bool,
+) -> Result<Crate, anyhow::Error> {
+    let metadata = cargo_metadata(project_dir, locked, offline, false)?;
+
+    let root_packages = metadata.workspace_default_packages();
+
+    let package = match root_packages[..] {
+        [] => {
+            bail!("no package found in dir")
+        }
+        [_, _, ..] => {
+            bail!("multiple candiate packages found in dir")
+        }
+        [package] => package,
+    };
+
+    Ok(Crate {
+        name: package.name.clone(),
+        version: package.version.clone(),
+    })
+}
+
+pub fn workspace_root(
+    project_dir: impl Into<PathBuf>,
+    locked: bool,
+    offline: bool,
+) -> Result<PathBuf, anyhow::Error> {
+    let metadata = cargo_metadata(project_dir, locked, offline, false)?;
+
+    Ok(metadata.workspace_root.into())
+}
+
 #[derive(Clone)]
 pub struct Dependency {
     pub name: String,
