@@ -58,11 +58,14 @@ pub fn direct_dependencies(
 ) -> Result<Vec<Dependency>, anyhow::Error> {
     let metadata = cargo_metadata(project_dir, cargo.include_deps(false))?;
 
-    let root_package = metadata.root_package().unwrap();
+    // let pacakges = metadata
+    //     .packages
+    //     .context("workspace contains no packages")?;
 
-    Ok(root_package
-        .dependencies
-        .iter()
+    Ok(metadata
+        .packages
+        .into_iter()
+        .flat_map(|package| package.dependencies)
         .map(
             |cargo_metadata::Dependency {
                  name,

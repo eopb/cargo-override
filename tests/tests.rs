@@ -512,6 +512,156 @@ fn patch_exists() {
 }
 
 #[googletest::test]
+fn patch_uses_workspace_version_inheritance() {
+    let working_dir = TempDir::new().unwrap();
+    let working_dir = working_dir.path();
+
+    let workspace_folder = "workspace";
+    let workspace_folder = working_dir.join(workspace_folder);
+
+    let patch_crate_name = "anyhow";
+    let patch_folder = patch_crate_name.to_string();
+    let patch_folder_path = workspace_folder.join(patch_folder.clone());
+
+    fs::create_dir(&workspace_folder).expect("failed to create patch folder");
+    fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
+
+    let package_name = "package-name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        .add_target(Target::bin(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new(patch_crate_name, "1.0.86"))
+        .render();
+
+    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
+    let _workspace_manifest_path = create_cargo_manifest(
+        &workspace_folder,
+        r#"
+        [workspace]
+        members = ["anyhow"]
+        [workspace.package]
+        version = "1.0.87"
+        "#,
+    );
+    let _patch_manifest_path = create_cargo_manifest(
+        &patch_folder_path,
+        r#"
+        [package]
+        name = "anyhow"
+        version.workspace = true
+        edition = "2021"
+
+        [lib]
+        name = "anyhow"
+        path = "src/lib.rs"
+        "#,
+    );
+
+    let result = run(working_dir, override_path("workspace/anyhow"));
+    expect_that!(result, ok(eq(())));
+
+    let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
+
+    insta::assert_toml_snapshot!(manifest, @r###"
+    '''
+    [package]
+    name = "package-name"
+    version = "0.1.0"
+    edition = "2021"
+
+    # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+    [dependencies]
+    anyhow = "1.0.86"
+
+    [[bin]]
+    name = "package-name"
+    path = "src/main.rs"
+
+    [patch.crates-io]
+    anyhow = { path = "workspace/anyhow" }
+    '''
+    "###);
+}
+
+#[googletest::test]
+fn project_is_workspace() {
+    let working_dir = TempDir::new().unwrap();
+    let working_dir = working_dir.path();
+
+    let patch_crate_name = "anyhow";
+    let patch_folder = patch_crate_name.to_string();
+
+    let workspace_folder = "workspace";
+    let workspace_folder = working_dir.join(workspace_folder);
+
+    let project_folder = "subdir";
+    let project_folder = workspace_folder.join(project_folder);
+    let patch_folder_path = working_dir.join(patch_folder.clone());
+
+    fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
+    fs::create_dir(&workspace_folder).expect("failed to create project folder");
+    fs::create_dir(&project_folder).expect("failed to create project folder");
+
+    let workspace_folder_manifest_path = create_cargo_manifest(
+        &workspace_folder,
+        r#"
+        [workspace]
+        members = ["subdir"]
+        "#,
+    );
+
+    let package_name = "package-name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        .add_target(Target::bin(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new(patch_crate_name, "1.0.86"))
+        .render();
+
+    let _ = create_cargo_manifest(&project_folder, &manifest);
+    let _patch_manifest_path = create_cargo_manifest(
+        &patch_folder_path,
+        &Manifest::new(Header::basic(patch_crate_name).version("1.1.5".to_owned()))
+            .add_target(Target::lib(patch_crate_name, "src/lib.rs"))
+            .render(),
+    );
+
+    let result = run(
+        working_dir,
+        Cli {
+            command: CargoInvocation::Override {
+                path: Some(patch_folder.to_owned().into()),
+                frozen: true,
+                locked: false,
+                offline: false,
+                no_deps: true,
+                registry: None,
+                branch: None,
+                rev: None,
+                tag: None,
+                git: None,
+                manifest_path: Some(workspace_folder_manifest_path.clone().try_into().unwrap()),
+            },
+        },
+    );
+
+    expect_that!(result, ok(eq(())));
+
+    let manifest = fs::read_to_string(workspace_folder_manifest_path).unwrap();
+
+    insta::assert_toml_snapshot!(manifest, @r###"
+    '''
+
+            [workspace]
+            members = ["subdir"]
+
+    [patch.crates-io]
+    anyhow = { path = "../anyhow" }
+            '''
+    "###);
+}
+
+#[googletest::test]
 fn patch_manifest_in_subdir() {
     let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();
