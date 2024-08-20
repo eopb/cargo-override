@@ -3,10 +3,7 @@ pub mod registry;
 mod metadata;
 mod toml;
 
-use std::{
-    ops::Not,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context};
 use clap::Parser;
@@ -61,31 +58,21 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
     // `--frozen` implies `--locked` and `--offline`
     let [locked, offline] = [locked, offline].map(|f| f || frozen);
 
-    let patch_manifest_path = patch_manifest(working_dir, &path)?;
+    let patch_manifest = metadata::crate_details(working_dir.join(&path), locked, offline)?;
 
     let project_manifest_path = project_manifest(working_dir)?;
-
-    let patch_manifest_content =
-        fs::read_to_string(patch_manifest_path).context("failed to read patch manifest")?;
-
-    let patch_manifest_toml: toml_edit::DocumentMut = patch_manifest_content
-        .parse()
-        .context("patch manifest contains invalid toml")?;
-
-    let patch_manifest_details =
-        ManifestDetails::read(&patch_manifest_toml).context("failed to get details for patch")?;
 
     let project_deps = metadata::direct_dependencies(&working_dir, locked, offline)
         .context("failed to get dependencies for current project")?;
 
     let mut direct_deps = project_deps
         .iter()
-        .filter(|dep| dep.name == patch_manifest_details.name)
+        .filter(|dep| dep.name == patch_manifest.name)
         .peekable();
 
     let dependency = if direct_deps.peek().is_some() {
         if let Some(dep) = direct_deps.find(|dependency| match dependency.requirement {
-            Some(ref req) => req.matches(&patch_manifest_details.version),
+            Some(ref req) => req.matches(&patch_manifest.version),
             None => false,
         }) {
             dep.clone()
@@ -101,7 +88,7 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
 
         resolved_deps
             .into_iter()
-            .find(|dep| dep.name == patch_manifest_details.name)
+            .find(|dep| dep.name == patch_manifest.name)
             .context("dep can not be found")?
     };
 
@@ -161,7 +148,7 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
 
     let project_manifest_toml = toml::patch_manifest(
         &project_manifest_content,
-        patch_manifest_details.name,
+        &patch_manifest.name,
         &registry,
         &path,
     )?;
@@ -172,57 +159,10 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn patch_manifest(working_dir: &Path, patch_path: &str) -> anyhow::Result<PathBuf> {
-    let patch_workspace = working_dir.join(patch_path);
-
-    if patch_workspace.is_dir().not() {
-        bail!("relative path \"{}\" is not a directory", patch_path);
-    }
-
-    let patch_manifest_path = patch_workspace.join(CARGO_TOML);
-
-    if patch_manifest_path.is_file().not() {
-        bail!("relative path \"{patch_path}\" does not contain a `{CARGO_TOML}` file")
-    }
-
-    Ok(patch_manifest_path)
-}
-
 fn project_manifest(working_dir: &Path) -> anyhow::Result<PathBuf> {
-    let project_manifest = working_dir.join(CARGO_TOML);
+    let manifest = metadata::workspace_root(working_dir, false, false)?.join(CARGO_TOML);
 
-    if project_manifest.is_file().not() {
-        bail!("the current working directory does not contain a `{CARGO_TOML}` manifest")
-    }
+    debug_assert!(manifest.is_file(), "{:?} is not a file", manifest);
 
-    Ok(project_manifest)
-}
-
-struct ManifestDetails<'a> {
-    name: &'a str,
-    version: semver::Version,
-}
-
-impl<'a> ManifestDetails<'a> {
-    fn read(document: &'a toml_edit::DocumentMut) -> anyhow::Result<Self> {
-        let package = document
-            .get("package")
-            .context("manifest missing `package`")?;
-        Ok({
-            Self {
-                name: package
-                    .get("name")
-                    .context("manifest missing `package.name`")?
-                    .as_str()
-                    .context("manifest `package.name` is not a string")?,
-                version: package
-                    .get("version")
-                    .context("manifest missing `package.version`")?
-                    .as_str()
-                    .context("manifest `package.version` is not a string")?
-                    .parse()
-                    .context("manifest `package.version` is not valid semver")?,
-            }
-        })
-    }
+    Ok(manifest)
 }
