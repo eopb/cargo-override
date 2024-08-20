@@ -19,19 +19,19 @@ failing_tests = []
 
 [dependencies]
 anyhow = "1.0.81"
-clap = { version = "4.4.4", features = ["derive"] }
-toml_edit = "0.22.9"
-cargo_metadata = "0.18"
-fs-err = "2.11.0"
-semver = "1.0.23"
-cargo = "0.81.0"
-winnow = "0.6.18"
-serde = { version = "1.0.206", features = ["derive"] }
 camino = "1.1.9"
-url = "2.5.2"
+cargo = "0.81.0"
+cargo_metadata = "0.18"
 cargo-util-schemas = "0.4.0"
-pathdiff = "0.2.1"
+clap = { version = "4.4.4", features = ["derive"] }
+fs-err = "2.11.0"
 home = "0.5.9"
+pathdiff = "0.2.1"
+semver = "1.0.23"
+serde = { version = "1.0.206", features = ["derive"] }
+toml_edit = "0.22.9"
+url = "2.5.2"
+winnow = "0.6.18"
 
 [dev-dependencies]
 assert_cmd = "2.0.16"
