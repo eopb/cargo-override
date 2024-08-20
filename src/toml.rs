@@ -4,6 +4,7 @@ use std::{path, path::Path};
 
 use anyhow::{bail, Context as _};
 use cargo_util_schemas::core::GitReference;
+use fs_err as fs;
 use pathdiff::diff_paths;
 
 pub fn patch_manifest(
@@ -36,6 +37,12 @@ pub fn patch_manifest(
 fn source(working_dir: &Path, manifest_directory: &Path, mode: &context::Mode) -> toml_edit::Item {
     let source = match mode {
         context::Mode::Path(relative_path) => {
+            let attempt_to_canonicalize =
+                |path: &Path| fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+
+            let [manifest_directory, working_dir] =
+                [manifest_directory, working_dir].map(attempt_to_canonicalize);
+
             let path = if manifest_directory != working_dir {
                 diff_paths(
                     path::absolute(&working_dir.join(relative_path)).unwrap(),
