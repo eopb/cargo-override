@@ -1,5 +1,7 @@
-mod metadata;
 pub mod registry;
+
+mod metadata;
+mod toml;
 
 use std::{
     ops::Not,
@@ -157,54 +159,17 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
     let project_manifest_content =
         fs::read_to_string(&project_manifest_path).context("failed to read patch manifest")?;
 
-    let mut project_manifest_toml: toml_edit::DocumentMut = project_manifest_content
-        .parse()
-        .context("patch manifest contains invalid toml")?;
-
-    let project_manifest_table = project_manifest_toml.as_table_mut();
-
-    let project_patch_table = create_subtable(project_manifest_table, "patch", true)?;
-
-    let project_patch_overrides_table = create_subtable(project_patch_table, &registry, false)?;
-
-    let Ok(new_patch) = format!("{{ path = \"{}\" }}", path).parse::<toml_edit::Item>() else {
-        todo!("We haven't escaped the path so we can't be sure this will parse")
-    };
-
-    toml_edit::Table::insert(
-        project_patch_overrides_table,
+    let project_manifest_toml = toml::patch_manifest(
+        &project_manifest_content,
         patch_manifest_details.name,
-        new_patch,
-    );
+        &registry,
+        &path,
+    )?;
 
     fs::write(&project_manifest_path, project_manifest_toml.to_string())
         .context("failed to write patched `Cargo.toml` file")?;
 
     Ok(())
-}
-
-fn create_subtable<'a>(
-    table: &'a mut toml_edit::Table,
-    name: &str,
-    dotted: bool,
-) -> anyhow::Result<&'a mut toml_edit::Table> {
-    let existing = &mut table[name];
-
-    if existing.is_none() {
-        // If the table does not exist, create it
-        *existing = toml_edit::Item::Table(toml_edit::Table::new());
-    }
-
-    // TODO: in the future we may be able to do cool things with miette
-    let _span = existing.span();
-
-    let Some(subtable) = existing.as_table_mut() else {
-        bail!("{name} already exists but is not a table")
-    };
-
-    subtable.set_dotted(dotted);
-
-    Ok(subtable)
 }
 
 fn patch_manifest(working_dir: &Path, patch_path: &str) -> anyhow::Result<PathBuf> {
