@@ -4,7 +4,7 @@ use clap::Parser;
 use fake::{Fake, Faker};
 use googletest::{
     expect_that,
-    matchers::{eq, matches_pattern, ok},
+    matchers::{eq, matches_pattern, ok, some},
 };
 
 use cargo_override::{CargoInvocation, Cli};
@@ -22,7 +22,7 @@ fn path_parse_from_args() {
             output,
             ok(matches_pattern!(Cli {
                 command: matches_pattern!(CargoInvocation::Override {
-                    path: eq(path.to_owned())
+                    path: some(eq(path.to_owned()))
                 })
             }))
         )
@@ -41,15 +41,20 @@ fn override_subcommand_help_message() {
 
             insta::assert_toml_snapshot!(output, @r###"
             '''
-            Usage: cargo override [OPTIONS] --path <PATH>
+            Usage: cargo override [OPTIONS]
 
             Options:
-              -p, --path <PATH>          
-                  --registry <REGISTRY>  
-                  --locked               Assert that `Cargo.lock` will remain unchanged
-                  --offline              Run without accessing the network
-                  --frozen               Equivalent to specifying both --locked and --offline
-              -h, --help                 Print help
+                  --path <PATH>                    
+                  --git <GIT>                      
+                  --branch <BRANCH>                
+                  --tag <TAG>                      
+                  --rev <REV>                      
+                  --registry <REGISTRY>            
+                  --manifest-path <MANIFEST_PATH>  
+                  --locked                         Assert that `Cargo.lock` will remain unchanged
+                  --offline                        Run without accessing the network
+                  --frozen                         Equivalent to specifying both --locked and --offline
+              -h, --help                           Print help
             '''
             "###);
         }

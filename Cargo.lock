@@ -201,9 +201,9 @@ checksum = "a3e368af43e418a04d52505cf3dbc23dda4e3407ae2fa99fd0e4f308ce546acc"
 
 [[package]]
 name = "camino"
-version = "1.1.7"
+version = "1.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0ec6b951b160caa93cc0c7b209e5a3bff7aae9062213451ac99493cd844c239"
+checksum = "8b96ec4966b5813e2c0507c1f86115c8c5abaadc3980879c3424042a02fd1ad3"
 dependencies = [
  "serde",
 ]
@@ -337,14 +337,18 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "assert_cmd",
+ "camino",
  "cargo",
+ "cargo-util-schemas",
  "cargo_metadata",
  "clap",
  "fake",
  "fs-err",
  "googletest",
  "hex",
+ "home",
  "insta",
+ "pathdiff",
  "semver",
  "serde",
  "serde_json",
@@ -353,6 +357,7 @@ dependencies = [
  "tempfile",
  "test-case",
  "toml_edit",
+ "url",
  "winnow",
 ]
 
@@ -1922,6 +1927,7 @@ dependencies = [
  "console",
  "lazy_static",
  "linked-hash-map",
+ "regex",
  "serde",
  "similar",
  "toml 0.5.11",
