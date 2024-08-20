@@ -1,10 +1,18 @@
-use anyhow::{bail, Context};
+use crate::context;
+
+use std::{path, path::Path};
+
+use anyhow::{bail, Context as _};
+use cargo_util_schemas::core::GitReference;
+use pathdiff::diff_paths;
 
 pub fn patch_manifest(
+    working_dir: &Path,
     manifest: &str,
+    manifest_directory: &Path,
     name: &str,
     registry: &str,
-    path: &str,
+    mode: &context::Mode,
 ) -> anyhow::Result<String> {
     let mut manifest: toml_edit::DocumentMut = manifest
         .parse()
@@ -16,13 +24,47 @@ pub fn patch_manifest(
 
     let registry_table = create_subtable(patch_table, &registry, false)?;
 
-    let Ok(new_patch) = format!("{{ path = \"{}\" }}", path).parse::<toml_edit::Item>() else {
-        todo!("We haven't escaped the path so we can't be sure this will parse")
-    };
-
-    toml_edit::Table::insert(registry_table, name, new_patch);
+    toml_edit::Table::insert(
+        registry_table,
+        name,
+        source(working_dir, manifest_directory, mode),
+    );
 
     Ok(manifest.to_string())
+}
+
+fn source(working_dir: &Path, manifest_directory: &Path, mode: &context::Mode) -> toml_edit::Item {
+    let source = match mode {
+        context::Mode::Path(relative_path) => {
+            let path = if manifest_directory != working_dir {
+                diff_paths(
+                    path::absolute(&working_dir.join(relative_path)).unwrap(),
+                    path::absolute(&manifest_directory).unwrap(),
+                )
+                .expect("both paths are absolute")
+            } else {
+                relative_path.into()
+            };
+
+            format!("{{ path = \"{}\" }}", path.display())
+        }
+        context::Mode::Git { url, reference } => {
+            let reference = match reference {
+                GitReference::DefaultBranch => String::new(),
+                GitReference::Tag(tag) => format!(", tag = \"{tag}\""),
+                GitReference::Rev(rev) => format!(", rev = \"{rev}\""),
+                GitReference::Branch(branch) => format!(", branch = \"{branch}\""),
+            };
+
+            format!("{{ git = \"{url}\"{reference} }}")
+        }
+    };
+
+    let Ok(new_patch) = source.parse::<toml_edit::Item>() else {
+        todo!("We haven't escaped anything, so we can't be sure this will parse")
+    };
+
+    new_patch
 }
 
 fn create_subtable<'a>(

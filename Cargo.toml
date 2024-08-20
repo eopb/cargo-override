@@ -27,13 +27,18 @@ semver = "1.0.23"
 cargo = "0.81.0"
 winnow = "0.6.18"
 serde = { version = "1.0.206", features = ["derive"] }
+camino = "1.1.9"
+url = "2.5.2"
+cargo-util-schemas = "0.4.0"
+pathdiff = "0.2.1"
+home = "0.5.9"
 
 [dev-dependencies]
 assert_cmd = "2.0.16"
 fake = "2.9.2"
 googletest = "0.11.0"
 hex = "0.4.3"
-insta = { version = "1.38.0", features = ["toml"] }
+insta = { version = "1.38.0", features = ["filters", "toml"] }
 serde_json = "1.0.125"
 sha2 = "0.10.8"
 strip-ansi-escapes = "0.2.0"

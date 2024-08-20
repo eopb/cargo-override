@@ -1,4 +1,4 @@
-use std::env::current_dir;
+use std::{env::current_dir, process};
 
 use cargo_override::{run, Cli};
 
@@ -9,5 +9,6 @@ fn main() {
 
     if let Err(e) = run(&current_dir().unwrap(), args) {
         eprintln!("error: {e:?}");
+        process::exit(101)
     }
 }

@@ -1,6 +1,8 @@
+use crate::context;
+
 use std::{ops::Not, path::PathBuf};
 
-use anyhow::{bail, Context};
+use anyhow::{bail, Context as _};
 use cargo::core::PackageIdSpec;
 use semver::{Version, VersionReq};
 
@@ -12,10 +14,9 @@ pub struct Crate {
 
 pub fn crate_details(
     project_dir: impl Into<PathBuf>,
-    locked: bool,
-    offline: bool,
+    cargo: context::Cargo,
 ) -> Result<Crate, anyhow::Error> {
-    let metadata = cargo_metadata(project_dir, locked, offline, false)?;
+    let metadata = cargo_metadata(project_dir, cargo.include_deps(false))?;
 
     let root_packages = metadata.workspace_default_packages();
 
@@ -37,10 +38,9 @@ pub fn crate_details(
 
 pub fn workspace_root(
     project_dir: impl Into<PathBuf>,
-    locked: bool,
-    offline: bool,
+    cargo: context::Cargo,
 ) -> Result<PathBuf, anyhow::Error> {
-    let metadata = cargo_metadata(project_dir, locked, offline, false)?;
+    let metadata = cargo_metadata(project_dir, cargo.include_deps(false))?;
 
     Ok(metadata.workspace_root.into())
 }
@@ -54,10 +54,9 @@ pub struct Dependency {
 
 pub fn direct_dependencies(
     project_dir: impl Into<PathBuf>,
-    locked: bool,
-    offline: bool,
+    cargo: context::Cargo,
 ) -> Result<Vec<Dependency>, anyhow::Error> {
-    let metadata = cargo_metadata(project_dir, locked, offline, false)?;
+    let metadata = cargo_metadata(project_dir, cargo.include_deps(false))?;
 
     let root_package = metadata.root_package().unwrap();
 
@@ -81,10 +80,9 @@ pub fn direct_dependencies(
 
 pub fn resolved_dependencies(
     project_dir: impl Into<PathBuf>,
-    locked: bool,
-    offline: bool,
+    cargo: context::Cargo,
 ) -> Result<Vec<Dependency>, anyhow::Error> {
-    let metadata = cargo_metadata(project_dir, locked, offline, true)?;
+    let metadata = cargo_metadata(project_dir, cargo)?;
 
     let Some(cargo_metadata::Resolve { nodes, .. }) = metadata.resolve else {
         bail!("failed to resolve transative dependencies")
@@ -106,9 +104,11 @@ pub fn resolved_dependencies(
 
 fn cargo_metadata(
     project_dir: impl Into<PathBuf>,
-    locked: bool,
-    offline: bool,
-    include_deps: bool,
+    context::Cargo {
+        locked,
+        offline,
+        include_deps,
+    }: context::Cargo,
 ) -> anyhow::Result<cargo_metadata::Metadata> {
     let mut cmd = cargo_metadata::MetadataCommand::new();
     cmd.current_dir(project_dir);

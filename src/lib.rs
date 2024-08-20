@@ -1,68 +1,56 @@
+pub mod cli;
+mod git;
 pub mod registry;
 
+mod context;
 mod metadata;
 mod toml;
 
-use std::path::{Path, PathBuf};
+pub use cli::{CargoInvocation, Cli};
+pub use context::Context;
 
-use anyhow::{bail, Context};
-use clap::Parser;
+use std::{
+    ops::Not,
+    path::{Path, PathBuf},
+};
+
+use anyhow::{bail, Context as _};
 use fs_err as fs;
 
 pub static DEFAULT_REGISTRY: &str = "crates-io";
 pub static DEFAULT_REGISTRY_URL: &str = "https://github.com/rust-lang/crates.io-index";
 pub static CARGO_TOML: &str = "Cargo.toml";
 
-#[derive(Parser, Debug)]
-#[command(bin_name = "cargo")]
-pub struct Cli {
-    #[command(subcommand)]
-    pub command: CargoInvocation,
-}
-
-#[derive(Parser, Debug)]
-pub enum CargoInvocation {
-    #[command(name = "override")]
-    Override {
-        #[arg(short, long)]
-        path: String,
-        #[arg(long)]
-        registry: Option<String>,
-        /// Assert that `Cargo.lock` will remain unchanged
-        #[arg(long)]
-        locked: bool,
-        /// Run without accessing the network
-        #[arg(long)]
-        offline: bool,
-        /// Equivalent to specifying both --locked and --offline
-        #[arg(long)]
-        frozen: bool,
-        #[arg(long, hide = true)]
-        no_deps: bool,
-    },
-}
-
 pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
-    let Cli {
-        command:
-            CargoInvocation::Override {
-                path,
-                locked,
-                offline,
-                frozen,
-                registry,
-                no_deps,
-            },
-    } = args;
+    let Context {
+        cargo,
+        manifest_path,
+        registry_hint,
+        mode,
+    } = args.try_into()?;
 
-    // `--frozen` implies `--locked` and `--offline`
-    let [locked, offline] = [locked, offline].map(|f| f || frozen);
+    let path = match &mode {
+        context::Mode::Path(ref path) => working_dir.join(&path),
+        context::Mode::Git { url, reference } => {
+            git::get_source(working_dir, url, reference.clone())?
+        }
+    };
 
-    let patch_manifest = metadata::crate_details(working_dir.join(&path), locked, offline)?;
+    let manifest_path = manifest_path.map(|mut path| {
+        path.pop();
+        path
+    });
 
-    let project_manifest_path = project_manifest(working_dir)?;
+    let manifest_path = manifest_path
+        .as_ref()
+        .map(|path| path.as_path().as_std_path())
+        .unwrap_or(working_dir);
 
-    let project_deps = metadata::direct_dependencies(&working_dir, locked, offline)
+    let patch_manifest = metadata::crate_details(&path, cargo)?;
+
+    let project_manifest_path = project_manifest(manifest_path, cargo)?;
+
+    let project_deps = metadata::direct_dependencies(&manifest_path, cargo)
         .context("failed to get dependencies for current project")?;
 
     let mut direct_deps = project_deps
@@ -80,10 +68,10 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
             bail!("patch can not be applied becase version is incompatible")
         }
     } else {
-        if no_deps {
+        if cargo.include_deps.not() {
             bail!("dependency can not be found");
         }
-        let resolved_deps = metadata::resolved_dependencies(&working_dir, locked, offline)
+        let resolved_deps = metadata::resolved_dependencies(&manifest_path, cargo)
             .context("failed to get dependencies for current project")?;
 
         resolved_deps
@@ -100,10 +88,10 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
 
     let registry = if let Some(registry_url) = &dependency_registry {
         let registry_guess =
-            registry::get_registry_name_from_url(working_dir.to_path_buf(), registry_url)
+            registry::get_registry_name_from_url(manifest_path.to_path_buf(), registry_url)
                 .context("failed to guess registry")?;
 
-        match (registry.to_owned(), registry_guess) {
+        match (registry_hint.to_owned(), registry_guess) {
             (Some(registry), None) => registry,
             (None, Some(registry)) => registry,
             (Some(registry_flag), Some(registry_guess)) if registry_guess == registry_flag => {
@@ -128,7 +116,7 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
             ),
         }
     } else {
-        if let Some(registry) = registry {
+        if let Some(registry) = registry_hint {
             if registry != DEFAULT_REGISTRY {
                 bail!(
                     "user provided registry `{}` with the `--registry` flag \
@@ -146,11 +134,19 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
     let project_manifest_content =
         fs::read_to_string(&project_manifest_path).context("failed to read patch manifest")?;
 
+    let project_path = {
+        let mut manifest_path = project_manifest_path.clone();
+        manifest_path.pop();
+        manifest_path
+    };
+
     let project_manifest_toml = toml::patch_manifest(
+        &working_dir,
         &project_manifest_content,
+        &project_path,
         &patch_manifest.name,
         &registry,
-        &path,
+        &mode,
     )?;
 
     fs::write(&project_manifest_path, project_manifest_toml.to_string())
@@ -159,8 +155,9 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn project_manifest(working_dir: &Path) -> anyhow::Result<PathBuf> {
-    let manifest = metadata::workspace_root(working_dir, false, false)?.join(CARGO_TOML);
+fn project_manifest(manifest_path: &Path, cargo: context::Cargo) -> anyhow::Result<PathBuf> {
+    let manifest =
+        metadata::workspace_root(manifest_path, cargo.include_deps(false))?.join(CARGO_TOML);
 
     debug_assert!(manifest.is_file(), "{:?} is not a file", manifest);
 

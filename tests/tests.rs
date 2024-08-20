@@ -5,9 +5,10 @@ use checksum::Checksum;
 use manifest::{Dependency, Header, Manifest, Target};
 
 use std::{
-    fs::File,
     env,
+    fs::File,
     io::Write,
+    path,
     path::{Path, PathBuf},
 };
 
@@ -56,7 +57,6 @@ fn patch_transative_on_regisrty() {
     let package_name = "package_name";
     let manifest_header = Header::basic(package_name);
     let manifest = Manifest::new(manifest_header)
-        // Hack: cargo metadata fails if manifest doesn't contain [[bin]] or [lib] secion
         .add_target(Target::bin(package_name, "src/main.rs"))
         .add_dependency(
             Dependency::new(intermediary_crate_name, "0.1.0").registry("truelayer-rustlayer"),
@@ -111,12 +111,17 @@ fn patch_transative_on_regisrty() {
         working_dir,
         Cli {
             command: CargoInvocation::Override {
-                path: patch_folder.into(),
+                path: Some(patch_folder.to_owned().into()),
                 frozen: false,
                 locked: false,
                 offline: true,
                 no_deps: false,
                 registry: None,
+                branch: None,
+                rev: None,
+                tag: None,
+                git: None,
+                manifest_path: None,
             },
         },
     );
@@ -223,12 +228,17 @@ fn patch_transative() {
         working_dir,
         Cli {
             command: CargoInvocation::Override {
-                path: patch_folder.into(),
+                path: Some(patch_folder.to_owned().into()),
                 frozen: false,
                 locked: false,
                 offline: true,
                 no_deps: false,
                 registry: None,
+                branch: None,
+                rev: None,
+                tag: None,
+                git: None,
+                manifest_path: None,
             },
         },
     );
@@ -260,6 +270,195 @@ fn patch_transative() {
 }
 
 #[googletest::test]
+fn git_patch_branch() {
+    let working_dir = TempDir::new().unwrap();
+    let working_dir = working_dir.path();
+
+    let package_name = "package-name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        .add_target(Target::bin(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new("redact", "0.1.0"))
+        .render();
+
+    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
+
+    let mut cmd = Command::cargo_bin("cargo-override").unwrap();
+    _ = cmd
+        .current_dir(working_dir)
+        .arg("override")
+        .arg("--git")
+        .arg("https://github.com/eopb/redact")
+        .arg("--branch")
+        .arg("main")
+        .arg("--frozen")
+        .arg("--no-deps")
+        .env("CARGO_HOME", working_dir)
+        .env("exit", "42")
+        .assert()
+        .success();
+
+    let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
+
+    insta::assert_toml_snapshot!(manifest, @r###"
+    '''
+    [package]
+    name = "package-name"
+    version = "0.1.0"
+    edition = "2021"
+
+    # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+    [dependencies]
+    redact = "0.1.0"
+
+    [[bin]]
+    name = "package-name"
+    path = "src/main.rs"
+
+    [patch.crates-io]
+    redact = { git = "https://github.com/eopb/redact", branch = "main" }
+    '''
+    "###);
+}
+
+#[googletest::test]
+fn git_patch_tag() {
+    let working_dir = TempDir::new().unwrap();
+    let working_dir = working_dir.path();
+
+    let package_name = "package-name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        .add_target(Target::bin(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new("redact", "0.1.0"))
+        .render();
+
+    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
+
+    let mut cmd = Command::cargo_bin("cargo-override").unwrap();
+    _ = cmd
+        .current_dir(working_dir)
+        .arg("override")
+        .arg("--git")
+        .arg("https://github.com/eopb/redact")
+        .arg("--tag")
+        .arg("v0.1.10")
+        .arg("--frozen")
+        .arg("--no-deps")
+        .env("CARGO_HOME", working_dir)
+        .env("exit", "42")
+        .assert()
+        .success();
+
+    let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
+
+    insta::assert_toml_snapshot!(manifest, @r###"
+    '''
+    [package]
+    name = "package-name"
+    version = "0.1.0"
+    edition = "2021"
+
+    # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+    [dependencies]
+    redact = "0.1.0"
+
+    [[bin]]
+    name = "package-name"
+    path = "src/main.rs"
+
+    [patch.crates-io]
+    redact = { git = "https://github.com/eopb/redact", tag = "v0.1.10" }
+    '''
+    "###);
+}
+
+#[googletest::test]
+fn git_patch_rev() {
+    let working_dir = TempDir::new().unwrap();
+    let working_dir = working_dir.path();
+
+    let package_name = "package-name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        .add_target(Target::bin(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new("redact", "0.1.0"))
+        .render();
+
+    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
+
+    let mut cmd = Command::cargo_bin("cargo-override").unwrap();
+    _ = cmd
+        .current_dir(working_dir)
+        .arg("override")
+        .arg("--git")
+        .arg("https://github.com/eopb/redact")
+        .arg("--rev")
+        .arg("931019c4d39af01a7ecfcb090f40f64bcfb1f295")
+        .arg("--frozen")
+        .arg("--no-deps")
+        .env("CARGO_HOME", working_dir)
+        .env("exit", "42")
+        .assert()
+        .success();
+
+    let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
+
+    insta::assert_toml_snapshot!(manifest, @r###"
+    '''
+    [package]
+    name = "package-name"
+    version = "0.1.0"
+    edition = "2021"
+
+    # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+    [dependencies]
+    redact = "0.1.0"
+
+    [[bin]]
+    name = "package-name"
+    path = "src/main.rs"
+
+    [patch.crates-io]
+    redact = { git = "https://github.com/eopb/redact", rev = "931019c4d39af01a7ecfcb090f40f64bcfb1f295" }
+    '''
+    "###);
+}
+
+#[googletest::test]
+fn git_patch_version_missmatch() {
+    let working_dir = TempDir::new().unwrap();
+    let working_dir = working_dir.path();
+
+    let package_name = "package-name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        .add_target(Target::bin(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new("redact", "0.2.0"))
+        .render();
+
+    let _ = create_cargo_manifest(working_dir, &manifest);
+
+    let mut cmd = Command::cargo_bin("cargo-override").unwrap();
+    _ = cmd
+        .current_dir(working_dir)
+        .arg("override")
+        .arg("--git")
+        .arg("https://github.com/eopb/redact")
+        .arg("--tag")
+        .arg("0.1.0-pre0")
+        .arg("--frozen")
+        .arg("--no-deps")
+        .env("CARGO_HOME", working_dir)
+        .env("exit", "42")
+        .assert()
+        .failure();
+}
+
+#[googletest::test]
 fn patch_exists() {
     let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();
@@ -273,7 +472,6 @@ fn patch_exists() {
     let package_name = "package-name";
     let manifest_header = Header::basic(package_name);
     let manifest = Manifest::new(manifest_header)
-        // Hack: cargo metadata fails if manifest doesn't contain [[bin]] or [lib] secion
         .add_target(Target::bin(package_name, "src/main.rs"))
         .add_dependency(Dependency::new(patch_crate_name, "1.0.86"))
         .render();
@@ -286,7 +484,7 @@ fn patch_exists() {
             .render(),
     );
 
-    let result = run(working_dir, override_path(patch_folder));
+    let result = run(working_dir, override_path(&patch_folder));
     expect_that!(result, ok(eq(())));
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
@@ -311,6 +509,139 @@ fn patch_exists() {
     anyhow = { path = "anyhow" }
     '''
     "###);
+}
+
+#[googletest::test]
+fn patch_manifest_in_subdir() {
+    let working_dir = TempDir::new().unwrap();
+    let working_dir = working_dir.path();
+
+    let patch_crate_name = "anyhow";
+    let patch_folder = patch_crate_name.to_string();
+    let project_folder = "subdir";
+    let project_folder = working_dir.join(project_folder);
+    let patch_folder_path = working_dir.join(patch_folder.clone());
+
+    fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
+    fs::create_dir(&project_folder).expect("failed to create project folder");
+
+    let package_name = "package-name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        .add_target(Target::bin(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new(patch_crate_name, "1.0.86"))
+        .render();
+
+    let project_manifest_path = create_cargo_manifest(&project_folder, &manifest);
+    let _patch_manifest_path = create_cargo_manifest(
+        &patch_folder_path,
+        &Manifest::new(Header::basic(patch_crate_name).version("1.1.5".to_owned()))
+            .add_target(Target::lib(patch_crate_name, "src/lib.rs"))
+            .render(),
+    );
+
+    let result = run(
+        working_dir,
+        Cli {
+            command: CargoInvocation::Override {
+                path: Some(patch_folder.to_owned().into()),
+                frozen: true,
+                locked: false,
+                offline: false,
+                no_deps: true,
+                registry: None,
+                branch: None,
+                rev: None,
+                tag: None,
+                git: None,
+                manifest_path: Some(project_manifest_path.clone().try_into().unwrap()),
+            },
+        },
+    );
+    expect_that!(result, ok(eq(())));
+
+    let manifest = fs::read_to_string(project_manifest_path).unwrap();
+
+    insta::assert_toml_snapshot!(manifest, @r###"
+    '''
+    [package]
+    name = "package-name"
+    version = "0.1.0"
+    edition = "2021"
+
+    # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+    [dependencies]
+    anyhow = "1.0.86"
+
+    [[bin]]
+    name = "package-name"
+    path = "src/main.rs"
+
+    [patch.crates-io]
+    anyhow = { path = "../anyhow" }
+    '''
+    "###);
+}
+
+#[googletest::test]
+fn patch_absolute_path() {
+    let working_dir = TempDir::new().unwrap();
+    let working_dir = working_dir.path();
+
+    let patch_crate_name = "anyhow";
+    let patch_folder = patch_crate_name.to_string();
+    let patch_folder_path = working_dir.join(patch_folder.clone());
+
+    fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
+
+    let package_name = "package-name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        .add_target(Target::bin(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new(patch_crate_name, "1.0.86"))
+        .render();
+
+    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
+    let _patch_manifest_path = create_cargo_manifest(
+        &patch_folder_path,
+        &Manifest::new(Header::basic(patch_crate_name).version("1.1.5".to_owned()))
+            .add_target(Target::lib(patch_crate_name, "src/lib.rs"))
+            .render(),
+    );
+
+    let result = run(
+        working_dir,
+        override_path(path::absolute(patch_folder_path).unwrap().to_str().unwrap()),
+    );
+    expect_that!(result, ok(eq(())));
+
+    let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
+
+    insta::with_settings!({filters => vec![
+        (r"\/\.tmp.*\/", "[TEMPDIR]"),
+    ]}, {
+        insta::assert_toml_snapshot!(manifest, @r###"
+        '''
+        [package]
+        name = "package-name"
+        version = "0.1.0"
+        edition = "2021"
+
+        # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+        [dependencies]
+        anyhow = "1.0.86"
+
+        [[bin]]
+        name = "package-name"
+        path = "src/main.rs"
+
+        [patch.crates-io]
+        anyhow = { path = "/tmp[TEMPDIR]anyhow" }
+        '''
+        "###);
+    });
 }
 
 #[test_case("0.1.0", "0.0.2")]
@@ -347,7 +678,7 @@ fn patch_version_incompatible(dependency_version: &str, patch_version: &str) {
 
     let manifest_before = fs::read_to_string(&working_dir_manifest_path).unwrap();
 
-    let result = run(working_dir, override_path(patch_folder));
+    let result = run(working_dir, override_path(&patch_folder));
 
     expect_that!(result, err(anything()));
 
@@ -388,7 +719,7 @@ fn missing_required_fields_on_patch(name: Option<&str>, version: Option<&str>) {
 
     let manifest_before = fs::read_to_string(&working_dir_manifest_path).unwrap();
 
-    let result = run(working_dir, override_path(patch_folder));
+    let result = run(working_dir, override_path(&patch_folder));
     expect_that!(result, err(anything()));
 
     let manifest_after = fs::read_to_string(working_dir_manifest_path).unwrap();
@@ -422,7 +753,7 @@ fn fail_patch_when_project_does_not_depend() {
 
     let manifest_before = fs::read_to_string(&working_dir_manifest_path).unwrap();
 
-    let result = run(working_dir, override_path(patch_folder));
+    let result = run(working_dir, override_path(&patch_folder));
     expect_that!(result, err(anything()));
 
     let manifest_after = fs::read_to_string(working_dir_manifest_path).unwrap();
@@ -453,7 +784,7 @@ fn patch_exists_put_project_does_not_have_dep() {
 
     let manifest_before = fs::read_to_string(&working_dir_manifest_path).unwrap();
 
-    let result = run(working_dir, override_path(patch_folder));
+    let result = run(working_dir, override_path(&patch_folder));
     expect_that!(result, err(anything()));
 
     let manifest_after = fs::read_to_string(working_dir_manifest_path).unwrap();
@@ -485,7 +816,7 @@ fn missing_manifest() {
 
     File::create_new(patch_manifest).expect("failed to create patch manifest file");
 
-    let result = run(working_dir, override_path(patch_folder));
+    let result = run(working_dir, override_path(&patch_folder));
 
     expect_that!(result, err(displays_as(anything())))
 }
@@ -497,7 +828,7 @@ fn patch_path_doesnt_exist() {
 
     let patch_folder: String = Faker.fake();
 
-    let result = run(working_dir, override_path(patch_folder.clone()));
+    let result = run(working_dir, override_path(&patch_folder.clone()));
 
     expect_that!(result, err(displays_as(anything())))
 }
@@ -512,7 +843,7 @@ fn patch_manifest_doesnt_exist() {
 
     fs::create_dir(patch_folder_path).expect("failed to create patch folder");
 
-    let result = run(working_dir, override_path(patch_folder.clone()));
+    let result = run(working_dir, override_path(&patch_folder.clone()));
 
     expect_that!(result, err(displays_as(anything())))
 }
@@ -579,7 +910,7 @@ fn patch_exists_alt_registry(setup: impl Fn(&Path)) {
             .render(),
     );
 
-    let result = run(working_dir, override_path(patch_folder));
+    let result = run(working_dir, override_path(&patch_folder));
     expect_that!(result, ok(eq(())));
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
@@ -679,15 +1010,20 @@ fn patch_exists_alt_registry_from_env() {
     }
 }
 
-fn override_path(path: impl Into<String>) -> Cli {
+fn override_path(path: &str) -> Cli {
     Cli {
         command: CargoInvocation::Override {
-            path: path.into(),
+            path: Some(path.to_owned().into()),
             frozen: true,
             locked: false,
             offline: false,
             no_deps: true,
             registry: None,
+            branch: None,
+            rev: None,
+            tag: None,
+            git: None,
+            manifest_path: None,
         },
     }
 }
