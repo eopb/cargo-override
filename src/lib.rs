@@ -9,10 +9,7 @@ mod toml;
 pub use cli::{CargoInvocation, Cli};
 pub use context::Context;
 
-use std::{
-    ops::Not,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context as _};
 use fs_err as fs;
@@ -68,9 +65,6 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
             bail!("patch can not be applied becase version is incompatible")
         }
     } else {
-        if cargo.include_deps.not() {
-            bail!("dependency can not be found");
-        }
         let resolved_deps = metadata::resolved_dependencies(manifest_path, cargo)
             .context("failed to get dependencies for current project")?;
 
@@ -161,8 +155,7 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
 }
 
 fn project_manifest(manifest_path: &Path, cargo: context::Cargo) -> anyhow::Result<PathBuf> {
-    let manifest =
-        metadata::workspace_root(manifest_path, cargo.include_deps(false))?.join(CARGO_TOML);
+    let manifest = metadata::workspace_root(manifest_path, cargo)?.join(CARGO_TOML);
 
     debug_assert!(manifest.is_file(), "{:?} is not a file", manifest);
 

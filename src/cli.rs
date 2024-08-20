@@ -45,8 +45,6 @@ pub struct Override {
     /// Equivalent to specifying both --locked and --offline
     #[arg(long)]
     pub frozen: bool,
-    #[arg(long, hide = true)]
-    pub no_deps: bool,
 }
 
 #[derive(Args, Debug)]

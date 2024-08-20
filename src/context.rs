@@ -1,7 +1,5 @@
 use crate::{cli, CargoInvocation, Cli};
 
-use std::ops::Not;
-
 use anyhow::bail;
 use camino::Utf8PathBuf;
 use cargo_util_schemas::core::GitReference;
@@ -21,14 +19,6 @@ pub struct Context {
 pub struct Cargo {
     pub locked: bool,
     pub offline: bool,
-    pub include_deps: bool,
-}
-
-impl Cargo {
-    pub fn include_deps(mut self, include_deps: bool) -> Self {
-        self.include_deps = include_deps;
-        self
-    }
 }
 
 pub enum Mode {
@@ -47,7 +37,6 @@ impl TryFrom<Cli> for Context {
                     offline,
                     frozen,
                     registry,
-                    no_deps,
                     manifest_path,
                     source: cli::Source { path, git },
                     git: cli::Git { branch, tag, rev },
@@ -57,11 +46,7 @@ impl TryFrom<Cli> for Context {
         // `--frozen` implies `--locked` and `--offline`
         let [locked, offline] = [locked, offline].map(|f| f || frozen);
 
-        let cargo = Cargo {
-            locked,
-            offline,
-            include_deps: no_deps.not(),
-        };
+        let cargo = Cargo { locked, offline };
 
         let mode = match (git, path) {
             (Some(git), None) => Mode::Git {

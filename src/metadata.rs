@@ -16,7 +16,7 @@ pub fn crate_details(
     project_dir: impl Into<PathBuf>,
     cargo: context::Cargo,
 ) -> Result<Crate, anyhow::Error> {
-    let metadata = cargo_metadata(project_dir, cargo.include_deps(false))?;
+    let metadata = cargo_metadata(project_dir, cargo, false)?;
 
     let root_packages = metadata.workspace_default_packages();
 
@@ -40,7 +40,7 @@ pub fn workspace_root(
     project_dir: impl Into<PathBuf>,
     cargo: context::Cargo,
 ) -> Result<PathBuf, anyhow::Error> {
-    let metadata = cargo_metadata(project_dir, cargo.include_deps(false))?;
+    let metadata = cargo_metadata(project_dir, cargo, false)?;
 
     Ok(metadata.workspace_root.into())
 }
@@ -56,11 +56,7 @@ pub fn direct_dependencies(
     project_dir: impl Into<PathBuf>,
     cargo: context::Cargo,
 ) -> Result<Vec<Dependency>, anyhow::Error> {
-    let metadata = cargo_metadata(project_dir, cargo.include_deps(false))?;
-
-    // let pacakges = metadata
-    //     .packages
-    //     .context("workspace contains no packages")?;
+    let metadata = cargo_metadata(project_dir, cargo, false)?;
 
     Ok(metadata
         .packages
@@ -85,7 +81,7 @@ pub fn resolved_dependencies(
     project_dir: impl Into<PathBuf>,
     cargo: context::Cargo,
 ) -> Result<Vec<Dependency>, anyhow::Error> {
-    let metadata = cargo_metadata(project_dir, cargo)?;
+    let metadata = cargo_metadata(project_dir, cargo, true)?;
 
     let Some(cargo_metadata::Resolve { nodes, .. }) = metadata.resolve else {
         bail!("failed to resolve transative dependencies")
@@ -107,11 +103,8 @@ pub fn resolved_dependencies(
 
 fn cargo_metadata(
     project_dir: impl Into<PathBuf>,
-    context::Cargo {
-        locked,
-        offline,
-        include_deps,
-    }: context::Cargo,
+    context::Cargo { locked, offline }: context::Cargo,
+    include_deps: bool,
 ) -> anyhow::Result<cargo_metadata::Metadata> {
     let mut cmd = cargo_metadata::MetadataCommand::new();
     cmd.current_dir(project_dir);
