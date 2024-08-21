@@ -16,3 +16,8 @@ anyhow = { path = "../anyhow" }
 #                  ^^^^^^^^^
 #                  Does the version of anyhow used here meet the requirement we set in our `Cargo.toml`?
 ```
+
+> [!NOTE]  
+> `carog-override` is still in alpha so there may be rough edges.
+> Please let us know if you experience bugs or find areas that can be improved.
+
