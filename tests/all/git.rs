@@ -36,7 +36,9 @@ fn git_patch() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @"");
+    insta::assert_snapshot!(stderr, @r###"
+    Patched dependency "redact" on registry "crates-io"
+    "###);
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -89,7 +91,9 @@ fn git_patch_branch() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @"");
+    insta::assert_snapshot!(stderr, @r###"
+    Patched dependency "redact" on registry "crates-io"
+    "###);
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -142,7 +146,9 @@ fn git_patch_tag() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @"");
+    insta::assert_snapshot!(stderr, @r###"
+    Patched dependency "redact" on registry "crates-io"
+    "###);
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -198,7 +204,9 @@ fn git_patch_rev() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @"");
+    insta::assert_snapshot!(stderr, @r###"
+    Patched dependency "redact" on registry "crates-io"
+    "###);
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -255,7 +263,7 @@ fn git_patch_version_missmatch() {
 
     insta::assert_snapshot!(stdout, @"");
     insta::assert_snapshot!(stderr, @r###"
-    error: patch can not be applied becase version is incompatible
+    error: patch could not be applied because version is incompatible
     "###);
 
     let manifest_after = fs::read_to_string(&manifest_path).unwrap();

@@ -120,7 +120,9 @@ fn patch_transative_on_regisrty() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @"");
+    insta::assert_snapshot!(stderr, @r###"
+    Patched dependency "anyhow" on registry "private-registry"
+    "###);
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -230,7 +232,9 @@ fn patch_transative() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @"");
+    insta::assert_snapshot!(stderr, @r###"
+    Patched dependency "anyhow" on registry "crates-io"
+    "###);
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -294,7 +298,9 @@ fn patch_exists() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @"");
+    insta::assert_snapshot!(stderr, @r###"
+    Patched dependency "anyhow" on registry "crates-io"
+    "###);
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -378,7 +384,9 @@ fn patch_uses_workspace_version_inheritance() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @"");
+    insta::assert_snapshot!(stderr, @r###"
+    Patched dependency "anyhow" on registry "crates-io"
+    "###);
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -462,7 +470,9 @@ fn project_is_workspace() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @"");
+    insta::assert_snapshot!(stderr, @r###"
+    Patched dependency "anyhow" on registry "crates-io"
+    "###);
 
     let manifest = fs::read_to_string(workspace_folder_manifest_path).unwrap();
 
@@ -523,7 +533,9 @@ fn patch_manifest_in_subdir() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @"");
+    insta::assert_snapshot!(stderr, @r###"
+    Patched dependency "anyhow" on registry "crates-io"
+    "###);
 
     let manifest = fs::read_to_string(project_manifest_path).unwrap();
 
@@ -591,7 +603,9 @@ fn patch_absolute_path() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @"");
+    insta::assert_snapshot!(stderr, @r###"
+    Patched dependency "anyhow" on registry "crates-io"
+    "###);
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -671,8 +685,8 @@ fn patch_version_incompatible(dependency_version: &str, patch_version: &str) {
     insta::allow_duplicates! {
         insta::assert_snapshot!(stdout, @"");
         insta::assert_snapshot!(stderr, @r###"
-            error: patch can not be applied becase version is incompatible
-            "###
+        error: patch could not be applied because version is incompatible
+        "###
         );
     }
 
@@ -955,7 +969,9 @@ fn patch_exists_alt_registry(setup: impl Fn(&Path)) {
 
     insta::allow_duplicates! {
         insta::assert_snapshot!(stdout, @"");
-        insta::assert_snapshot!(stderr, @"");
+        insta::assert_snapshot!(stderr, @r###"
+        Patched dependency "anyhow" on registry "private-registry"
+        "###);
     }
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
@@ -1027,7 +1043,9 @@ fn patch_exists_alt_registry_from_env() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @"");
+    insta::assert_snapshot!(stderr, @r###"
+    Patched dependency "anyhow" on registry "private-registry"
+    "###);
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
