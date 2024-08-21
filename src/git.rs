@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::bail;
+use anyhow::{bail, Context};
 use cargo::{
     core::{shell::Shell, GitReference, SourceId},
     sources::git::GitSource,
@@ -30,9 +30,12 @@ pub fn get_source(
         .unwrap();
 
     let mut git_source =
-        GitSource::new(SourceId::for_git(url, reference).unwrap(), &global_context).unwrap();
+        GitSource::new(SourceId::for_git(url, reference).unwrap(), &global_context)
+            .with_context(|| format!("failed to download git source. Is \"{url}\" a valid URL?"))?;
 
-    let packages = git_source.read_packages().unwrap();
+    let packages = git_source.read_packages().with_context(|| {
+        format!("failed to read packages from git source. Does \"{url}\" contain a crate?")
+    })?;
 
     drop(package_lock);
 
