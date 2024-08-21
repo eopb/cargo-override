@@ -40,10 +40,10 @@ fn patch_transative_on_regisrty() {
         working_dir,
         r#"
         [registries]
-        truelayer-rustlayer = { index = "https://dl.cloudsmith.io/basic/truelayer/rustlayer/cargo/index.git" }
+        private-registry = { index = "https://dl.cloudsmith.io/basic/private/registry/cargo/index.git" }
 
-        [source."registry+https://dl.cloudsmith.io/basic/truelayer/rustlayer/cargo/index.git"]
-        registry = "https://dl.cloudsmith.io/basic/truelayer/rustlayer/cargo/index.git"
+        [source."registry+https://dl.cloudsmith.io/basic/private/registry/cargo/index.git"]
+        registry = "https://dl.cloudsmith.io/basic/private/registry/cargo/index.git"
         replace-with = "vendored-sources"
 
         [source.crates-io]
@@ -59,7 +59,7 @@ fn patch_transative_on_regisrty() {
     let manifest = Manifest::new(manifest_header)
         .add_target(Target::bin(package_name, "src/main.rs"))
         .add_dependency(
-            Dependency::new(intermediary_crate_name, "0.1.0").registry("truelayer-rustlayer"),
+            Dependency::new(intermediary_crate_name, "0.1.0").registry("private-registry"),
         )
         .render();
 
@@ -81,12 +81,13 @@ fn patch_transative_on_regisrty() {
         fs::create_dir(&vendored_itermediray_crate).expect("failed to create vendor folder");
 
         let manifest_header = Header::basic(intermediary_crate_name);
-        let manifest = Manifest::new(manifest_header)
-            .add_target(Target::lib(package_name, "src/lib.rs"))
-            .add_dependency(Dependency::new(patch_crate_name, "1.0.86").registry_index(
-                "https://dl.cloudsmith.io/basic/truelayer/rustlayer/cargo/index.git",
-            ))
-            .render();
+        let manifest =
+            Manifest::new(manifest_header)
+                .add_target(Target::lib(package_name, "src/lib.rs"))
+                .add_dependency(Dependency::new(patch_crate_name, "1.0.86").registry_index(
+                    "https://dl.cloudsmith.io/basic/private/registry/cargo/index.git",
+                ))
+                .render();
 
         let _ = create_cargo_manifest(&vendored_itermediray_crate, &manifest);
         let checksum = Checksum::package_only_manifest(&manifest);
@@ -133,13 +134,13 @@ fn patch_transative_on_regisrty() {
     # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
     [dependencies]
-    foo = { version = "0.1.0", registry = "truelayer-rustlayer" }
+    foo = { version = "0.1.0", registry = "private-registry" }
 
     [[bin]]
     name = "package_name"
     path = "src/main.rs"
 
-    [patch.truelayer-rustlayer]
+    [patch.private-registry]
     anyhow = { path = "anyhow" }
     '''
     "###);
@@ -891,7 +892,7 @@ fn basic_cargo_config(path: &Path) {
         path,
         r#"
         [registries]
-        truelayer-rustlayer = { index = "https://dl.cloudsmith.io/basic/truelayer/rustlayer/cargo/index.git" }
+        private-registry = { index = "https://dl.cloudsmith.io/basic/private/registry/cargo/index.git" }
         "#,
     )
 }
@@ -902,7 +903,7 @@ fn basic_cargo_env_config(path: &Path) {
         &path,
         r#"
         [env]
-        CARGO_REGISTRIES_TRUELAYER_RUSTLAYER_INDEX = "https://dl.cloudsmith.io/basic/truelayer/rustlayer/cargo/index.git"
+        CARGO_REGISTRIES_PRIVATE_REGISTRY_INDEX = "https://dl.cloudsmith.io/basic/private/registry/cargo/index.git"
         "#,
     )
 }
@@ -928,7 +929,7 @@ fn patch_exists_alt_registry(setup: impl Fn(&Path)) {
     let manifest_header = Header::basic(package_name);
     let manifest = Manifest::new(manifest_header)
         .add_target(Target::bin(package_name, "src/main.rs"))
-        .add_dependency(Dependency::new(patch_crate_name, "1.0.86").registry("truelayer-rustlayer"))
+        .add_dependency(Dependency::new(patch_crate_name, "1.0.86").registry("private-registry"))
         .render();
 
     let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
@@ -968,13 +969,13 @@ fn patch_exists_alt_registry(setup: impl Fn(&Path)) {
         # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
         [dependencies]
-        anyhow = { version = "1.0.86", registry = "truelayer-rustlayer" }
+        anyhow = { version = "1.0.86", registry = "private-registry" }
 
         [[bin]]
         name = "package-name"
         path = "src/main.rs"
 
-        [patch.truelayer-rustlayer]
+        [patch.private-registry]
         anyhow = { path = "anyhow" }
         '''
         "###);
@@ -996,7 +997,7 @@ fn patch_exists_alt_registry_from_env() {
     let manifest_header = Header::basic(package_name);
     let manifest = Manifest::new(manifest_header)
         .add_target(Target::bin(package_name, "src/main.rs"))
-        .add_dependency(Dependency::new(patch_crate_name, "1.0.86").registry("truelayer-rustlayer"))
+        .add_dependency(Dependency::new(patch_crate_name, "1.0.86").registry("private-registry"))
         .render();
 
     let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
@@ -1009,8 +1010,8 @@ fn patch_exists_alt_registry_from_env() {
 
     let mut command = override_path(&patch_folder, working_dir, |command| {
         command.env(
-            "CARGO_REGISTRIES_TRUELAYER_RUSTLAYER_INDEX",
-            "https://dl.cloudsmith.io/basic/truelayer/rustlayer/cargo/index.git",
+            "CARGO_REGISTRIES_PRIVATE_REGISTRY_INDEX",
+            "https://dl.cloudsmith.io/basic/private/registry/cargo/index.git",
         )
     });
 
@@ -1039,13 +1040,13 @@ fn patch_exists_alt_registry_from_env() {
         # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
         [dependencies]
-        anyhow = { version = "1.0.86", registry = "truelayer-rustlayer" }
+        anyhow = { version = "1.0.86", registry = "private-registry" }
 
         [[bin]]
         name = "package-name"
         path = "src/main.rs"
 
-        [patch.truelayer-rustlayer]
+        [patch.private-registry]
         anyhow = { path = "anyhow" }
         '''
         "###);
