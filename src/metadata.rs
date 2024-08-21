@@ -16,16 +16,18 @@ pub fn crate_details(
     project_dir: impl Into<PathBuf>,
     cargo: context::Cargo,
 ) -> Result<Crate, anyhow::Error> {
-    let metadata = cargo_metadata(project_dir, cargo, false)?;
+    let project_dir = project_dir.into();
+
+    let metadata = cargo_metadata(&project_dir, cargo, false)?;
 
     let root_packages = metadata.workspace_default_packages();
 
     let package = match root_packages[..] {
         [] => {
-            bail!("no package found in dir")
+            bail!("no package found in directory \"{project_dir:?}\"")
         }
         [_, _, ..] => {
-            bail!("multiple candiate packages found in dir")
+            bail!("multiple candiate packages found in directory \"{project_dir:?}\"")
         }
         [package] => package,
     };
