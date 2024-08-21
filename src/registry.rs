@@ -100,7 +100,7 @@ mod tests {
             ),
             (
                 "CARGO_REGISTRIES_FOO_BAR_INDEX",
-                "https://dl.cloudsmith.io/basic/truelayer/rustlayer/cargo/index.git",
+                "https://dl.cloudsmith.io/basic/private/registry/cargo/index.git",
             ),
             ("CARGO_REGISTRIES_FOO_BAR_PROTOCOL", "sparse"),
             ("CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER", "HI"),
@@ -116,7 +116,7 @@ mod tests {
         expect_that!(
             get_registry_from_env(
                 env.clone().into_iter(),
-                "https://dl.cloudsmith.io/basic/truelayer/rustlayer/cargo/index.git"
+                "https://dl.cloudsmith.io/basic/private/registry/cargo/index.git"
             ),
             some(eq("foo-bar"))
         );
