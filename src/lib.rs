@@ -33,21 +33,21 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
         }
     };
 
-    let manifest_path = manifest_path.map(|mut path| {
+    let manifest_dir = manifest_path.map(|mut path| {
         path.pop();
         path
     });
 
-    let manifest_path = manifest_path
+    let manifest_dir = manifest_dir
         .as_ref()
         .map(|path| path.as_path().as_std_path())
         .unwrap_or(working_dir);
 
     let patch_manifest = metadata::crate_details(&path, cargo)?;
 
-    let project_manifest_path = project_manifest(manifest_path, cargo)?;
+    let manifest_path = project_manifest(manifest_dir, cargo)?;
 
-    let project_deps = metadata::direct_dependencies(manifest_path, cargo)
+    let project_deps = metadata::direct_dependencies(&manifest_dir, cargo)
         .context("failed to get dependencies for current project")?;
 
     let mut direct_deps = project_deps
@@ -62,10 +62,10 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
         }) {
             dep.clone()
         } else {
-            bail!("patch can not be applied becase version is incompatible")
+            bail!("patch could not be applied because version is incompatible")
         }
     } else {
-        let resolved_deps = metadata::resolved_dependencies(manifest_path, cargo)
+        let resolved_deps = metadata::resolved_dependencies(manifest_dir, cargo)
             .context("failed to get dependencies for current project")?;
 
         resolved_deps
@@ -87,7 +87,7 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
 
     let registry = if let Some(registry_url) = &dependency_registry {
         let registry_guess =
-            registry::get_registry_name_from_url(manifest_path.to_path_buf(), registry_url)
+            registry::get_registry_name_from_url(manifest_dir.to_path_buf(), registry_url)
                 .context("failed to guess registry")?;
 
         match (registry_hint.to_owned(), registry_guess) {
@@ -131,10 +131,10 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
     };
 
     let project_manifest_content =
-        fs::read_to_string(&project_manifest_path).context("failed to read patch manifest")?;
+        fs::read_to_string(&manifest_path).context("failed to read patch manifest")?;
 
     let project_path = {
-        let mut manifest_path = project_manifest_path.clone();
+        let mut manifest_path = manifest_path.clone();
         manifest_path.pop();
         manifest_path
     };
@@ -148,8 +148,13 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
         &mode,
     )?;
 
-    fs::write(&project_manifest_path, &project_manifest_toml)
+    fs::write(&manifest_path, &project_manifest_toml)
         .context("failed to write patched `Cargo.toml` file")?;
+
+    eprintln!(
+        "Patched dependency \"{}\" on registry \"{registry}\"",
+        patch_manifest.name
+    );
 
     Ok(())
 }
