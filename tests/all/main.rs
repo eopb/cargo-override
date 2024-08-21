@@ -799,6 +799,7 @@ fn missing_manifest() {
 
     insta::with_settings!({filters => vec![
         (r"tmp\/\.tmp.*\/", "[TEMPDIR]"),
+        (r"private\/var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
         (r"var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
         (&patch_folder, "[PATCH]"),
     ]}, {
@@ -873,6 +874,7 @@ fn patch_manifest_doesnt_exist() {
 
     insta::with_settings!({filters => vec![
         (r"tmp\/\.tmp.*\/", "[TEMPDIR]"),
+        (r"private\/var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
         (r"var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
         (&patch_folder, "[PATCH]"),
     ]}, {
