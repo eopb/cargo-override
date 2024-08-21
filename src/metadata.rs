@@ -113,6 +113,8 @@ fn cargo_metadata(
             locked.then_some("--locked"),
             offline.then_some("--offline"),
             include_deps.not().then_some("--no-deps"),
+            Some("--color"),
+            Some("never"),
         ]
         .into_iter()
         .flatten()
