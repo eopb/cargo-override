@@ -12,6 +12,7 @@ use cargo::{
 use home::cargo_home_with_cwd;
 use url::Url;
 
+/// Fetches a git source with Cargo, and returns the path to that source in the cargo cache
 pub fn get_source(
     working_dir: &Path,
     url: &Url,
