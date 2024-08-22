@@ -1,5 +1,9 @@
 # cargo-override
 
+[![License](https://img.shields.io/crates/l/cargo-override.svg)](https://crates.io/crates/cargo-override)
+[![Latest version](https://img.shields.io/crates/v/cargo-override.svg)](https://crates.io/crates/cargo-override)
+[![downloads-badge](https://img.shields.io/crates/d/cargo-override.svg)](https://crates.io/crates/cargo-override)
+
 Quickly [override dependencies](https://doc.rust-lang.org/cargo/reference/overriding-dependencies.html) using the `[patch]` section of `Cargo.toml`s.
 
 This plugin adds a new cargo subcommand, `cargo override`, which makes it trivial to patch dependencies with custom local copies, or versions from Git.
