@@ -32,7 +32,7 @@ First, ensure that you have a recent version of `cargo` installed.
 `cargo override` can then be installed with `cargo`.
 
 ```
-cargo install cargo-override@0.1.0-alpha.2 --locked
+cargo install cargo-override --locked
 ```
 
 Alternative installation methods will be avalible in the future.
