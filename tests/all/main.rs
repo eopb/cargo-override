@@ -20,7 +20,7 @@ use cargo_override::CARGO_TOML;
 use assert_cmd::Command;
 use fake::{Fake, Faker};
 use fs_err as fs;
-use googletest::{expect_that, matchers::eq};
+use googletest::{expect_eq, verify_eq, verify_that};
 use tempfile::TempDir;
 use test_case::test_case;
 
@@ -692,7 +692,7 @@ fn patch_version_incompatible(dependency_version: &str, patch_version: &str) {
 
     let manifest_after = fs::read_to_string(working_dir_manifest_path).unwrap();
 
-    expect_that!(manifest_before, eq(&manifest_after));
+    expect_eq!(manifest_before, manifest_after);
 }
 
 #[test_case(None, None)]
@@ -735,7 +735,7 @@ fn missing_required_fields_on_patch(name: Option<&str>, version: Option<&str>) {
 
     let manifest_after = fs::read_to_string(working_dir_manifest_path).unwrap();
 
-    expect_that!(manifest_before, eq(&manifest_after));
+    expect_eq!(manifest_before, manifest_after);
 }
 
 /// When we add a patch we want to make sure that we're actually depending on the dependency we're
@@ -783,7 +783,7 @@ fn patch_exists_put_project_does_not_depend_on_it() {
 
     let manifest_after = fs::read_to_string(working_dir_manifest_path).unwrap();
 
-    expect_that!(manifest_before, eq(&manifest_after));
+    expect_eq!(manifest_before, manifest_after);
 }
 
 #[googletest::test]

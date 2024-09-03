@@ -7,7 +7,7 @@ use std::{env, path::Path};
 
 use assert_cmd::Command;
 use fs_err as fs;
-use googletest::{expect_that, matchers::eq};
+use googletest::{expect_eq, verify_eq, verify_that};
 use tempfile::TempDir;
 
 #[googletest::test]
@@ -268,7 +268,7 @@ fn git_patch_version_missmatch() {
 
     let manifest_after = fs::read_to_string(&manifest_path).unwrap();
 
-    expect_that!(manifest_before, eq(&manifest_after));
+    expect_eq!(manifest_before, manifest_after);
 }
 
 fn override_redact_crate(
