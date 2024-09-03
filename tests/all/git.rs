@@ -268,7 +268,7 @@ fn git_patch_version_missmatch() {
 
     let manifest_after = fs::read_to_string(&manifest_path).unwrap();
 
-    expect_that!(manifest_before, eq(manifest_after));
+    expect_that!(manifest_before, eq(&manifest_after));
 }
 
 fn override_redact_crate(

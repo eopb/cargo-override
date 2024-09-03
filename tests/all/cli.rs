@@ -24,7 +24,7 @@ fn path_parse_from_args() {
                 command: matches_pattern!(CargoInvocation::Override(matches_pattern!(
                     cli::Override {
                         source: matches_pattern!(cli::Source {
-                            path: some(eq(path.to_owned()))
+                            path: some(eq(path))
                         })
                     }
                 )))
