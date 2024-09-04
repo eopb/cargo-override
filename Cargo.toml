@@ -6,8 +6,7 @@ license = "Apache-2.0 OR MIT"
 description = """
 Quickly override dependencies using the `[patch]` section of `Cargo.toml`s.
 """
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+repository = "https://github.com/eopb/cargo-override"
 
 [features]
 # Used to introduce TDD style tests, that are known to fail now, without breaking CI.
