@@ -54,21 +54,19 @@ jobs:
       - name: cargo check
         run: cargo check --locked --all-features
   msrv:
+    name: "Check MSRV"
     runs-on: ubuntu-latest
-    # we use a matrix here just because env can't be used in job names
-    # https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability
-    strategy:
-      matrix:
-        msrv: [1.78.0]
-    name: ubuntu / ${{ matrix.msrv }}
     steps:
-      - uses: actions/checkout@v3
-      - name: Install ${{ matrix.msrv }}
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ matrix.msrv }}
-      - name: cargo +${{ matrix.msrv }} check
-        run: cargo check --all-features
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: stable
+    - uses: Swatinem/rust-cache@v2
+    - uses: taiki-e/install-action@cargo-hack
+    - name: Default features
+      run: cargo hack check --feature-powerset --locked --rust-version --ignore-private --workspace --all-targets
   lockfile:
     runs-on: ubuntu-latest
     steps:
