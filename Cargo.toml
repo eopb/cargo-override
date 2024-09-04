@@ -33,6 +33,7 @@ serde = { version = "1.0.206", features = ["derive"] }
 toml_edit = "0.22.9"
 url = "2.5.2"
 winnow = "0.6.18"
+clap-cargo = "0.14.1"
 
 [dev-dependencies]
 assert_cmd = "2.0.16"

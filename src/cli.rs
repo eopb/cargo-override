@@ -5,6 +5,7 @@ use url::Url;
 #[derive(Parser, Debug)]
 #[command(bin_name = "cargo", version, about)]
 #[command(propagate_version = true)]
+#[command(styles = clap_cargo::style::CLAP_STYLING)]
 #[cfg_attr(debug_assertions, command(term_width = 0))] // Disable `--help` linewrap for tests since it makes snapshots flaky
 pub struct Cli {
     #[command(subcommand)]
