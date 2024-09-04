@@ -2,6 +2,7 @@
 name = "cargo-override"
 version = "0.0.1"
 edition = "2021"
+rust-version = "1.79"
 license = "Apache-2.0 OR MIT"
 description = """
 Quickly override dependencies using the `[patch]` section of `Cargo.toml`s.
