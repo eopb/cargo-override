@@ -29,13 +29,22 @@ anyhow = { path = "../anyhow" }
 
 First, ensure that you have a recent version of `cargo` installed.
 
+## Cargo
+
 `cargo override` can then be installed with `cargo`.
 
 ```
 cargo install cargo-override --locked
 ```
 
-Alternative installation methods will be avalible in the future.
+## Nix ❄️
+
+You can try `cargo override` in your shell with flakes enabled, using:
+
+```
+nix shell github:eopb/cargo-override
+```
+
 
 # Usage
 
