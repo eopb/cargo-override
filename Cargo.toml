@@ -1,6 +1,6 @@
 [package]
 name = "cargo-override"
-version = "0.0.2"
+version = "0.0.3"
 edition = "2021"
 rust-version = "1.79"
 license = "Apache-2.0 OR MIT"
