@@ -57,19 +57,18 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
         .peekable();
 
     let dependency = if direct_deps.peek().is_some() {
-        if let Some(dep) = direct_deps.find(|dependency| match dependency.requirement {
-            Some(ref req) => req.matches(&patch_manifest.version),
-            None => false,
-        }) {
-            dep.clone()
-        } else {
-            bail!("patch could not be applied because version is incompatible")
-        }
+        direct_deps
+            .find(|dep| {
+                dep.requirement
+                    .as_ref()
+                    .is_some_and(|req| req.matches(&patch_manifest.version) || force)
+            })
+            .context("patch could not be applied because version is incompatible")?
     } else {
         let resolved_deps = metadata::resolved_dependencies(manifest_dir, cargo)
             .context("failed to get dependencies for current project")?;
 
-        resolved_deps
+        &resolved_deps
             .into_iter()
             .find(|dep| dep.name == patch_manifest.name)
             .with_context(|| {
@@ -83,7 +82,7 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
     let dependency_registry = if dependency.registry == Some(DEFAULT_REGISTRY_URL.to_owned()) {
         None
     } else {
-        dependency.registry
+        dependency.registry.as_deref()
     };
 
     let registry = if let Some(registry_url) = &dependency_registry {
