@@ -47,7 +47,7 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
 
     let manifest_path = project_manifest(manifest_dir, cargo)?;
 
-    let project_deps = metadata::direct_dependencies(&manifest_dir, cargo)
+    let project_deps = metadata::direct_dependencies(manifest_dir, cargo)
         .context("failed to get dependencies for current project")?;
 
     let mut direct_deps = project_deps

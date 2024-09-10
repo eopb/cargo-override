@@ -765,7 +765,7 @@ fn patch_exists_put_project_does_not_depend_on_it() {
 
     let manifest_before = fs::read_to_string(&working_dir_manifest_path).unwrap();
 
-    let mut command = override_path(&patch_folder, working_dir, |command| command);
+    let mut command = override_path(patch_folder, working_dir, |command| command);
 
     let assert = command.assert();
 
@@ -916,7 +916,7 @@ fn basic_cargo_config(path: &Path) {
 #[cfg(feature = "failing_tests")]
 fn basic_cargo_env_config(path: &Path) {
     write_cargo_config(
-        &path,
+        path,
         r#"
         [env]
         CARGO_REGISTRIES_PRIVATE_REGISTRY_INDEX = "https://dl.cloudsmith.io/basic/private/registry/cargo/index.git"
