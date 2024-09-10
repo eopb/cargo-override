@@ -29,7 +29,7 @@ pub struct Override {
 
     #[arg(long)]
     /// Name of the registry to use.
-    /// Usually `cargo-override` can correctly determine which regestiry to use without needing this flag
+    /// Usually `cargo-override` can correctly determine which registry to use without needing this flag
     pub registry: Option<String>,
 
     /// Path to the `Cargo.toml` file that needs patching.

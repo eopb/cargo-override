@@ -60,7 +60,7 @@ fn override_subcommand_help_message() {
                   --rev <REV>
                       Specific commit to use when overriding from git
                   --registry <REGISTRY>
-                      Name of the registry to use. Usually `cargo-override` can correctly determine which regestiry to use without needing this flag
+                      Name of the registry to use. Usually `cargo-override` can correctly determine which registry to use without needing this flag
                   --manifest-path <MANIFEST_PATH>
                       Path to the `Cargo.toml` file that needs patching. By default, `cargo-override` searches for the `Cargo.toml` file in the current directory or any parent directory
                   --locked
