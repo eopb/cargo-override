@@ -13,6 +13,8 @@ pub struct Context {
     pub manifest_path: Option<Utf8PathBuf>,
 
     pub mode: Mode,
+
+    pub force: bool,
 }
 
 #[derive(Copy, Clone)]
@@ -40,6 +42,7 @@ impl TryFrom<Cli> for Context {
                     manifest_path,
                     source: cli::Source { path, git },
                     git: cli::Git { branch, tag, rev },
+                    force,
                 }),
         }: Cli,
     ) -> Result<Self, Self::Error> {
@@ -79,6 +82,8 @@ impl TryFrom<Cli> for Context {
             manifest_path,
 
             mode,
+
+            force,
         })
     }
 }

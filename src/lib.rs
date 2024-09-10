@@ -11,7 +11,7 @@ pub use context::Context;
 
 use std::path::{Path, PathBuf};
 
-use anyhow::{bail, Context as _};
+use anyhow::{bail, ensure, Context as _};
 use fs_err as fs;
 
 pub static DEFAULT_REGISTRY: &str = "crates-io";
@@ -24,6 +24,7 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
         manifest_path,
         registry_hint,
         mode,
+        force,
     } = args.try_into()?;
 
     let path = match &mode {
@@ -97,8 +98,8 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
                 registry_guess
             }
             (Some(registry_flag), Some(registry_guess)) => {
-                // TODO: force is unimplemented
-                bail!(
+                ensure!(
+                    force,
                     "user provided registry `{}` with the `--registry` flag \
                      but dependency `{}` \
                      uses registry `{}`. 
@@ -106,7 +107,8 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
                     registry_flag,
                     dependency.name,
                     registry_guess
-                )
+                );
+                registry_flag
             }
             (None, None) => bail!(
                 "unable to determine registry name for `{}`

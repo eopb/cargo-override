@@ -69,6 +69,8 @@ fn override_subcommand_help_message() {
                       Prevents cargo from accessing the network
                   --frozen
                       Equivalent to specifying both --locked and --offline
+                  --force
+                      Force the override, ignoring compatibility checks
               -h, --help
                       Print help
               -V, --version

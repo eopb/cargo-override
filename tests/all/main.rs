@@ -1000,6 +1000,149 @@ fn patch_exists_alt_registry(setup: impl Fn(&Path)) {
     }
 }
 
+#[cfg_attr(feature = "failing_tests", test_case(basic_cargo_env_config))]
+#[test_case(basic_cargo_config)]
+#[googletest::test]
+fn patch_registry_mismatch_fails(setup: impl Fn(&Path)) {
+    let mut working_dir = tempfile::Builder::new();
+    let working_dir = working_dir.keep(true).tempdir().unwrap();
+    let working_dir = working_dir.path();
+
+    setup(working_dir);
+
+    let patch_crate_name = "anyhow";
+    let patch_folder = patch_crate_name.to_string();
+    let patch_folder_path = working_dir.join(patch_folder.clone());
+
+    fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
+
+    let package_name = "package-name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        .add_target(Target::bin(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new(patch_crate_name, "1.0.86").registry("private-registry"))
+        .render();
+
+    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
+    let _patch_manifest_path = create_cargo_manifest(
+        &patch_folder_path,
+        &Manifest::new(Header::basic(patch_crate_name).version("1.1.5".to_owned()))
+            .add_target(Target::lib(patch_crate_name, "src/lib.rs"))
+            .render(),
+    );
+
+    let manifest_before = fs::read_to_string(&working_dir_manifest_path).unwrap();
+
+    let mut command = override_path(&patch_folder, working_dir, |command| {
+        command.arg("--registry").arg("another-registry")
+    });
+
+    let assert = command.assert();
+
+    let output = assert.get_output();
+
+    let stdout = String::from_utf8(output.stdout.clone()).unwrap();
+    let stderr = String::from_utf8(output.stderr.clone()).unwrap();
+
+    assert.failure();
+
+    insta::allow_duplicates! {
+        insta::with_settings!({filters => vec![
+            (patch_folder.as_str(), "[PATCH]"),
+        ]}, {
+            insta::assert_snapshot!(stdout, @"");
+            insta::assert_snapshot!(stderr, @r###"
+            error: user provided registry `another-registry` with the `--registry` flag but dependency `[PATCH]` uses registry `private-registry`. 
+                                 To use the registry, you passed, use `--force`
+            "###);
+        })
+    };
+
+    let manifest_after = fs::read_to_string(working_dir_manifest_path).unwrap();
+
+    expect_eq!(manifest_before, manifest_after);
+}
+
+#[cfg_attr(feature = "failing_tests", test_case(basic_cargo_env_config))]
+#[test_case(basic_cargo_config)]
+#[googletest::test]
+fn patch_registry_mismatch_force_succeeds(setup: impl Fn(&Path)) {
+    let mut working_dir = tempfile::Builder::new();
+    let working_dir = working_dir.keep(true).tempdir().unwrap();
+    let working_dir = working_dir.path();
+
+    setup(working_dir);
+
+    let patch_crate_name = "anyhow";
+    let patch_folder = patch_crate_name.to_string();
+    let patch_folder_path = working_dir.join(patch_folder.clone());
+
+    fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
+
+    let package_name = "package-name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        .add_target(Target::bin(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new(patch_crate_name, "1.0.86").registry("private-registry"))
+        .render();
+
+    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
+    let _patch_manifest_path = create_cargo_manifest(
+        &patch_folder_path,
+        &Manifest::new(Header::basic(patch_crate_name).version("1.1.5".to_owned()))
+            .add_target(Target::lib(patch_crate_name, "src/lib.rs"))
+            .render(),
+    );
+
+    let mut command = override_path(&patch_folder, working_dir, |command| {
+        command
+            .arg("--registry")
+            .arg("another-registry")
+            .arg("--force")
+    });
+
+    let assert = command.assert();
+
+    let output = assert.get_output();
+
+    let stdout = String::from_utf8(output.stdout.clone()).unwrap();
+    let stderr = String::from_utf8(output.stderr.clone()).unwrap();
+
+    assert.success();
+
+    insta::allow_duplicates! {
+        insta::assert_snapshot!(stdout, @"");
+        insta::assert_snapshot!(stderr, @r###"
+        Patched dependency "anyhow" on registry "another-registry"
+        "###);
+    }
+
+    let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
+
+    insta::allow_duplicates! {
+        insta::assert_toml_snapshot!(manifest, @r###"
+        '''
+        [package]
+        name = "package-name"
+        version = "0.1.0"
+        edition = "2021"
+
+        # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+        [dependencies]
+        anyhow = { version = "1.0.86", registry = "private-registry" }
+
+        [[bin]]
+        name = "package-name"
+        path = "src/main.rs"
+
+        [patch.another-registry]
+        anyhow = { path = "anyhow" }
+        '''
+        "###);
+    }
+}
+
 #[googletest::test]
 fn patch_exists_alt_registry_from_env() {
     let working_dir = TempDir::new().unwrap();
