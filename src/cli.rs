@@ -29,7 +29,7 @@ pub struct Override {
 
     #[arg(long)]
     /// Name of the registry to use.
-    /// Usually `cargo-override` can correctly determine which regestiry to use without needing this flag
+    /// Usually `cargo-override` can correctly determine which registry to use without needing this flag
     pub registry: Option<String>,
 
     /// Path to the `Cargo.toml` file that needs patching.
@@ -46,6 +46,10 @@ pub struct Override {
     /// Equivalent to specifying both --locked and --offline
     #[arg(long)]
     pub frozen: bool,
+
+    /// Force the override, ignoring compatibility checks.
+    #[arg(long)]
+    pub force: bool,
 }
 
 #[derive(Args, Debug)]
