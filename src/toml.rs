@@ -2,18 +2,27 @@ use crate::context;
 
 use std::{path, path::Path};
 
-use anyhow::{bail, Context as _};
+use anyhow::{bail, Context};
 use cargo_util_schemas::core::GitReference;
 use fs_err as fs;
 use pathdiff::diff_paths;
+
+pub enum Operation<'a> {
+    Add {
+        registry: &'a str,
+        name: &'a str,
+        mode: &'a context::Mode,
+    },
+    Remove {
+        name: &'a str,
+    },
+}
 
 pub fn patch_manifest(
     working_dir: &Path,
     manifest: &str,
     manifest_directory: &Path,
-    name: &str,
-    registry: &str,
-    mode: &context::Mode,
+    op: Operation,
 ) -> anyhow::Result<String> {
     let mut manifest: toml_edit::DocumentMut = manifest
         .parse()
@@ -21,8 +30,34 @@ pub fn patch_manifest(
 
     let manifest_table = manifest.as_table_mut();
 
-    let patch_table = create_subtable(manifest_table, "patch", true)?;
+    match op {
+        Operation::Add {
+            registry,
+            name,
+            mode,
+        } => add_patch_to_manifest(
+            working_dir,
+            manifest_table,
+            manifest_directory,
+            registry,
+            name,
+            mode,
+        )?,
+        Operation::Remove { name } => remove_patch_from_manifest(manifest_table, name)?,
+    }
 
+    Ok(manifest.to_string())
+}
+
+fn add_patch_to_manifest(
+    working_dir: &Path,
+    manifest_table: &mut toml_edit::Table,
+    manifest_directory: &Path,
+    registry: &str,
+    name: &str,
+    mode: &context::Mode,
+) -> anyhow::Result<()> {
+    let patch_table = create_subtable(manifest_table, "patch", true)?;
     let registry_table = create_subtable(patch_table, registry, false)?;
 
     toml_edit::Table::insert(
@@ -31,7 +66,37 @@ pub fn patch_manifest(
         source(working_dir, manifest_directory, mode),
     );
 
-    Ok(manifest.to_string())
+    Ok(())
+}
+
+fn remove_patch_from_manifest(
+    manifest_table: &mut toml_edit::Table,
+    name: &str,
+) -> anyhow::Result<()> {
+    if let Some(patch_table) = manifest_table.get_mut("patch") {
+        let mut to_remove = vec![];
+        let patch_table = patch_table.as_table_mut().unwrap();
+        for (register_name, register) in patch_table.iter_mut() {
+            let register_table = register.as_table_mut().unwrap();
+            register_table.remove(name);
+
+            if register_table.is_empty() {
+                to_remove.push(register_name.to_string());
+            }
+        }
+
+        // TODO: somehow it removes the comment in the manifest file -> see test
+        //       Removes a comment in the final toml file when using the tool as well
+        //       Maybe it thinks the comment refers to the table.
+        //       Reason: sees a comment before a table as a decor which belongs to it
+        //       Solution: don't remove if there is any comment in front of the table?
+        //       Solution2: toml_edit should only take direct attached comments as prefix?
+        for register_name in to_remove {
+            dbg!(patch_table.remove(register_name.as_str()));
+        }
+    }
+
+    Ok(())
 }
 
 fn source(working_dir: &Path, manifest_directory: &Path, mode: &context::Mode) -> toml_edit::Item {
@@ -96,4 +161,78 @@ fn create_subtable<'a>(
     subtable.set_dotted(dotted);
 
     Ok(subtable)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_patch_manifest() {
+        let manifest = r###"[package]
+name = "package-name"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[patch.crates-io]
+test = { git = "https://github.com/test/test.git" }
+
+[patch.github]
+test1 = { git = "https://github.com/test/test1.git" }
+"###;
+
+        let manifest_after_adding = patch_manifest(
+            Path::new("/path/to/working/dir/"),
+            &manifest,
+            Path::new("/path/to/working/dir/"),
+            Operation::Add {
+                registry: "crates-io",
+                name: "test2",
+                mode: &context::Mode::Path("/path/to/local/crate/test2".into()),
+            },
+        )
+        .unwrap();
+
+        insta::assert_toml_snapshot!(manifest_after_adding, @r###"
+        '''
+        [package]
+        name = "package-name"
+        version = "0.1.0"
+        edition = "2021"
+
+        # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+        [patch.crates-io]
+        test = { git = "https://github.com/test/test.git" }
+        test2 = { path = "/path/to/local/crate/test2" }
+
+        [patch.github]
+        test1 = { git = "https://github.com/test/test1.git" }
+        '''
+        "###);
+
+        let manifest_after_removing = patch_manifest(
+            Path::new("/path/to/working/dir/"),
+            &manifest,
+            Path::new("/path/to/working/dir/"),
+            Operation::Remove { name: "test" },
+        )
+        .unwrap();
+
+        insta::assert_toml_snapshot!(manifest_after_removing, @r###"
+        '''
+        [package]
+        name = "package-name"
+        version = "0.1.0"
+        edition = "2021"
+
+        # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+        
+        [patch.github]
+        test1 = { git = "https://github.com/test/test1.git" }
+        '''
+        "###);
+    }
 }
