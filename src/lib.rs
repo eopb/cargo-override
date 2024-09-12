@@ -7,6 +7,7 @@ mod metadata;
 mod toml;
 
 pub use cli::{CargoInvocation, Cli};
+use context::Cargo;
 pub use context::Context;
 
 use std::path::{Path, PathBuf};
@@ -19,6 +20,13 @@ pub static DEFAULT_REGISTRY_URL: &str = "https://github.com/rust-lang/crates.io-
 pub static CARGO_TOML: &str = "Cargo.toml";
 
 pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
+    match args.command {
+        CargoInvocation::Override(args) => run_override(working_dir, args),
+        CargoInvocation::RmOverride(args) => run_rm_override(working_dir, args),
+    }
+}
+
+fn run_override(working_dir: &Path, args: cli::Override) -> anyhow::Result<()> {
     let Context {
         cargo,
         manifest_path,
@@ -144,9 +152,11 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
         working_dir,
         &project_manifest_content,
         &project_path,
-        &patch_manifest.name,
-        &registry,
-        &mode,
+        toml::Operation::Add {
+            name: &patch_manifest.name,
+            registry: &registry,
+            mode: &mode,
+        },
     )?;
 
     fs::write(&manifest_path, &project_manifest_toml)
@@ -156,6 +166,47 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
         "Patched dependency \"{}\" on registry \"{registry}\"",
         patch_manifest.name
     );
+
+    Ok(())
+}
+
+fn run_rm_override(
+    working_dir: &Path,
+    cli::RmOverride {
+        package,
+        manifest_path,
+        locked,
+    }: cli::RmOverride,
+) -> anyhow::Result<()> {
+    let manifest_dir = manifest_path.map(|mut path| {
+        path.pop();
+        path
+    });
+
+    let manifest_dir = manifest_dir
+        .as_ref()
+        .map(|path| path.as_path().as_std_path())
+        .unwrap_or(working_dir);
+
+    let cargo = Cargo {
+        locked,
+        offline: true,
+    };
+
+    let manifest_path = project_manifest(manifest_dir, cargo)?;
+
+    let project_manifest_content =
+        fs::read_to_string(&manifest_path).context("failed to read patch manifest")?;
+
+    let project_manifest_toml = toml::patch_manifest(
+        working_dir,
+        project_manifest_content.as_str(),
+        manifest_dir,
+        toml::Operation::Remove { name: &package },
+    )?;
+
+    fs::write(&manifest_path, &project_manifest_toml)
+        .context("failed to write patched `Cargo.toml` file")?;
 
     Ok(())
 }
