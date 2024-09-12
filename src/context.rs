@@ -1,4 +1,4 @@
-use crate::{cli, CargoInvocation, Cli};
+use crate::cli;
 
 use anyhow::bail;
 use camino::Utf8PathBuf;
@@ -28,23 +28,20 @@ pub enum Mode {
     Git { url: Url, reference: GitReference },
 }
 
-impl TryFrom<Cli> for Context {
+impl TryFrom<cli::Override> for Context {
     type Error = anyhow::Error;
 
     fn try_from(
-        Cli {
-            command:
-                CargoInvocation::Override(cli::Override {
-                    locked,
-                    offline,
-                    frozen,
-                    registry,
-                    manifest_path,
-                    source: cli::Source { path, git },
-                    git: cli::Git { branch, tag, rev },
-                    force,
-                }),
-        }: Cli,
+        cli::Override {
+            locked,
+            offline,
+            frozen,
+            registry,
+            manifest_path,
+            source: cli::Source { path, git },
+            git: cli::Git { branch, tag, rev },
+            force,
+        }: cli::Override,
     ) -> Result<Self, Self::Error> {
         // `--frozen` implies `--locked` and `--offline`
         let [locked, offline] = [locked, offline].map(|f| f || frozen);
