@@ -17,6 +17,10 @@ pub enum CargoInvocation {
     #[command(name = "override", about)]
     #[command(next_line_help = true)]
     Override(Override),
+
+    #[command(name = "rm-override", about)]
+    #[command(next_line_help = true)]
+    RmOverride(RmOverride),
 }
 
 #[derive(Args, Debug)]
@@ -76,4 +80,19 @@ pub struct Git {
     /// Specific commit to use when overriding from git
     #[arg(long)]
     pub rev: Option<String>,
+}
+
+#[derive(Args, Debug)]
+pub struct RmOverride {
+    #[arg(long)]
+    pub package: String,
+
+    /// Path to the `Cargo.toml` file that needs patching.
+    /// By default, `cargo-override` searches for the `Cargo.toml` file in the current directory or any parent directory
+    #[arg(long)]
+    pub manifest_path: Option<Utf8PathBuf>,
+
+    /// Assert that `Cargo.lock` will remain unchanged
+    #[arg(long)]
+    pub locked: bool,
 }
