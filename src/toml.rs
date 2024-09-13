@@ -1,6 +1,6 @@
 use crate::context;
 
-use std::{path, path::Path};
+use std::{iter::FromIterator, path, path::Path};
 
 use anyhow::{bail, Context as _};
 use cargo_util_schemas::core::GitReference;
@@ -28,14 +28,22 @@ pub fn patch_manifest(
     toml_edit::Table::insert(
         registry_table,
         name,
-        source(working_dir, manifest_directory, mode),
+        toml_edit::Item::Value(toml_edit::Value::InlineTable(source(
+            working_dir,
+            manifest_directory,
+            mode,
+        ))),
     );
 
     Ok(manifest.to_string())
 }
 
-fn source(working_dir: &Path, manifest_directory: &Path, mode: &context::Mode) -> toml_edit::Item {
-    let source = match mode {
+fn source(
+    working_dir: &Path,
+    manifest_directory: &Path,
+    mode: &context::Mode,
+) -> toml_edit::InlineTable {
+    match mode {
         context::Mode::Path(relative_path) => {
             let attempt_to_canonicalize =
                 |path: &Path| fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
@@ -53,25 +61,28 @@ fn source(working_dir: &Path, manifest_directory: &Path, mode: &context::Mode) -
                 relative_path.into()
             };
 
-            format!("{{ path = \"{}\" }}", path.display())
+            let path = path
+                .as_os_str()
+                .to_str()
+                .expect("path must be utf8 unicode");
+
+            toml_edit::InlineTable::from_iter([("path", path)])
         }
         context::Mode::Git { url, reference } => {
             let reference = match reference {
-                GitReference::DefaultBranch => String::new(),
-                GitReference::Tag(tag) => format!(", tag = \"{tag}\""),
-                GitReference::Rev(rev) => format!(", rev = \"{rev}\""),
-                GitReference::Branch(branch) => format!(", branch = \"{branch}\""),
+                GitReference::DefaultBranch => None,
+                GitReference::Tag(tag) => Some(("tag", tag.as_str())),
+                GitReference::Rev(rev) => Some(("rev", rev.as_str())),
+                GitReference::Branch(branch) => Some(("branch", branch.as_str())),
             };
 
-            format!("{{ git = \"{url}\"{reference} }}")
+            toml_edit::InlineTable::from_iter(
+                [Some(("git", url.as_str())), reference]
+                    .into_iter()
+                    .flatten(),
+            )
         }
-    };
-
-    let Ok(new_patch) = source.parse::<toml_edit::Item>() else {
-        todo!("We haven't escaped anything, so we can't be sure this will parse")
-    };
-
-    new_patch
+    }
 }
 
 fn create_subtable<'a>(
