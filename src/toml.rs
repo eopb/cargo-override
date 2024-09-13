@@ -91,8 +91,10 @@ fn remove_patch_from_manifest(
         //       Reason: sees a comment before a table as a decor which belongs to it
         //       Solution: don't remove if there is any comment in front of the table?
         //       Solution2: toml_edit should only take direct attached comments as prefix?
+        //       Otherwise it wouldn't be a problem if we add the patch section at the end,
+        //            there shouldn't be any comments before it, which do not belong to it.
         for register_name in to_remove {
-            dbg!(patch_table.remove(register_name.as_str()));
+            patch_table.remove(register_name.as_str());
         }
     }
 
@@ -176,11 +178,16 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[patch.crates-io]
-test = { git = "https://github.com/test/test.git" }
+[dependencies]
+anyhow = "1.0.40"
+pathdiff = "0.2.1"
+custom-package = { git = "https://link/to/crate" }
 
-[patch.github]
-test1 = { git = "https://github.com/test/test1.git" }
+[patch.crates-io]
+anyhow = { git = "https://github.com/dtolnay/anyhow.git" }
+
+[patch."https://link/to/crate"]
+custom-package = { path = "../path/to/crate" }
 "###;
 
         let manifest_after_adding = patch_manifest(
@@ -189,8 +196,8 @@ test1 = { git = "https://github.com/test/test1.git" }
             Path::new("/path/to/working/dir/"),
             Operation::Add {
                 registry: "crates-io",
-                name: "test2",
-                mode: &context::Mode::Path("/path/to/local/crate/test2".into()),
+                name: "pathdiff",
+                mode: &context::Mode::Path("../path/to/pathdiff".into()),
             },
         )
         .unwrap();
@@ -204,12 +211,17 @@ test1 = { git = "https://github.com/test/test1.git" }
 
         # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-        [patch.crates-io]
-        test = { git = "https://github.com/test/test.git" }
-        test2 = { path = "/path/to/local/crate/test2" }
+        [dependencies]
+        anyhow = "1.0.40"
+        pathdiff = "0.2.1"
+        custom-package = { git = "https://link/to/crate" }
 
-        [patch.github]
-        test1 = { git = "https://github.com/test/test1.git" }
+        [patch.crates-io]
+        anyhow = { git = "https://github.com/dtolnay/anyhow.git" }
+        pathdiff = { path = "../path/to/pathdiff" }
+
+        [patch."https://link/to/crate"]
+        custom-package = { path = "../path/to/crate" }
         '''
         "###);
 
@@ -217,7 +229,7 @@ test1 = { git = "https://github.com/test/test1.git" }
             Path::new("/path/to/working/dir/"),
             &manifest,
             Path::new("/path/to/working/dir/"),
-            Operation::Remove { name: "test" },
+            Operation::Remove { name: "anyhow" },
         )
         .unwrap();
 
@@ -230,8 +242,13 @@ test1 = { git = "https://github.com/test/test1.git" }
 
         # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
         
-        [patch.github]
-        test1 = { git = "https://github.com/test/test1.git" }
+        [dependencies]
+        anyhow = "1.0.40"
+        pathdiff = "0.2.1"
+        custom-package = { git = "https://link/to/crate" }
+
+        [patch."https://link/to/crate"]
+        custom-package = { path = "../path/to/crate" }
         '''
         "###);
     }
