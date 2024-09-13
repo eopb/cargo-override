@@ -74,14 +74,18 @@ fn remove_patch_from_manifest(
     name: &str,
 ) -> anyhow::Result<()> {
     if let Some(patch_table) = manifest_table.get_mut("patch") {
-        let mut to_remove = vec![];
-        let patch_table = patch_table.as_table_mut().unwrap();
-        for (register_name, register) in patch_table.iter_mut() {
-            let register_table = register.as_table_mut().unwrap();
-            register_table.remove(name);
+        let mut to_remove_registry = None;
 
-            if register_table.is_empty() {
-                to_remove.push(register_name.to_string());
+        let patch_table = patch_table.as_table_mut().unwrap();
+        for (registry_name, patch_table_item) in patch_table.iter_mut() {
+            let registry_table = patch_table_item.as_table_mut().unwrap();
+            if registry_table.remove(name).is_some() {
+                if registry_table.is_empty() {
+                    to_remove_registry = Some(registry_name.to_owned());
+                }
+
+                // We can stop searching, it should be only one patch per package name.
+                break;
             }
         }
 
@@ -91,10 +95,12 @@ fn remove_patch_from_manifest(
         //       Reason: sees a comment before a table as a decor which belongs to it
         //       Solution: don't remove if there is any comment in front of the table?
         //       Solution2: toml_edit should only take direct attached comments as prefix?
-        //       Otherwise it wouldn't be a problem if we add the patch section at the end,
+        //       On the other hand it wouldn't be a problem if we add the patch section at the end,
         //            there shouldn't be any comments before it, which do not belong to it.
-        for register_name in to_remove {
-            patch_table.remove(register_name.as_str());
+        //
+        // If the patch table is empty afterwards, will remove the patch table automatically as well.
+        if let Some(registry_name) = to_remove_registry {
+            patch_table.remove(registry_name.as_str());
         }
     }
 
