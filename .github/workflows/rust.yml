@@ -19,8 +19,10 @@ jobs:
         os: [ubuntu-latest, macos-14]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: taiki-e/install-action@cargo-hack
+      - uses: actions/checkout@v4.1.7
+      - uses: taiki-e/install-action@v2.43.0
+        with:
+          tool: cargo-hack
       - name: build
         run: cargo hack build --feature-powerset
   test:
@@ -30,31 +32,37 @@ jobs:
         os: [ubuntu-latest, macos-14]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: taiki-e/install-action@cargo-hack
+      - uses: actions/checkout@v4.1.7
+      - uses: taiki-e/install-action@v2.43.0
+        with:
+          tool: cargo-hack
       - name: test
         run: cargo hack test --feature-powerset --exclude-features failing_tests
   fmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4.1.7
       - name: fmt
         run: cargo fmt --check
   doc:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4.1.7
       - name: doc
         run: cargo doc --all-features
   minimal:
     runs-on: ubuntu-latest
     name: ubuntu / stable / minimal-versions
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4.1.7
       - name: Install stable
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@7b1c307e0dcbda6122208f10795a713336a9b35a
+        with:
+          toolchain: stable
       - name: Install nightly for -Zminimal-versions
-        uses: dtolnay/rust-toolchain@nightly
+        uses: dtolnay/rust-toolchain@7b1c307e0dcbda6122208f10795a713336a9b35a
+        with:
+          toolchain: nightly
       - name: rustup default stable
         run: rustup default stable
       - name: cargo update -Zminimal-versions
@@ -66,22 +74,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v4.1.7
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@7b1c307e0dcbda6122208f10795a713336a9b35a
       with:
         toolchain: stable
-    - uses: Swatinem/rust-cache@v2
-    - uses: taiki-e/install-action@cargo-hack
+    - uses: Swatinem/rust-cache@v2.7.3
+    - uses: taiki-e/install-action@v2.43.0
+      with:
+        tool: cargo-hack
     - name: Default features
       run: cargo hack check --feature-powerset --locked --rust-version --ignore-private --workspace --all-targets
   lockfile:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v4.1.7
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@7b1c307e0dcbda6122208f10795a713336a9b35a
       with:
         toolchain: stable
     - uses: Swatinem/rust-cache@v2
