@@ -169,9 +169,7 @@ fn create_subtable<'a>(
 mod test {
     use super::*;
 
-    #[test]
-    fn test_patch_manifest() {
-        let manifest = r###"[package]
+    const TEST_MANIFEST: &str = r###"[package]
 name = "package-name"
 version = "0.1.0"
 edition = "2021"
@@ -185,14 +183,17 @@ custom-package = { git = "https://link/to/crate" }
 
 [patch.crates-io]
 anyhow = { git = "https://github.com/dtolnay/anyhow.git" }
+anyhow-dev = { path = "../path/to/anyhow" }
 
 [patch."https://link/to/crate"]
 custom-package = { path = "../path/to/crate" }
 "###;
 
+    #[test]
+    fn test_patch_manifest_add() {
         let manifest_after_adding = patch_manifest(
             Path::new("/path/to/working/dir/"),
-            &manifest,
+            TEST_MANIFEST,
             Path::new("/path/to/working/dir/"),
             Operation::Add {
                 registry: "crates-io",
@@ -218,18 +219,24 @@ custom-package = { path = "../path/to/crate" }
 
         [patch.crates-io]
         anyhow = { git = "https://github.com/dtolnay/anyhow.git" }
+        anyhow-dev = { path = "../path/to/anyhow" }
         pathdiff = { path = "../path/to/pathdiff" }
 
         [patch."https://link/to/crate"]
         custom-package = { path = "../path/to/crate" }
         '''
         "###);
+    }
 
+    #[test]
+    fn test_patch_manifest_remove() {
         let manifest_after_removing = patch_manifest(
             Path::new("/path/to/working/dir/"),
-            &manifest,
+            &TEST_MANIFEST,
             Path::new("/path/to/working/dir/"),
-            Operation::Remove { name: "anyhow" },
+            Operation::Remove {
+                name: "custom-package",
+            },
         )
         .unwrap();
 
@@ -246,6 +253,37 @@ custom-package = { path = "../path/to/crate" }
         anyhow = "1.0.40"
         pathdiff = "0.2.1"
         custom-package = { git = "https://link/to/crate" }
+
+        [patch.crates-io]
+        anyhow = { git = "https://github.com/dtolnay/anyhow.git" }
+        anyhow-dev = { path = "../path/to/anyhow" }
+        '''
+        "###);
+
+        let manifest_after_removing = patch_manifest(
+            Path::new("/path/to/working/dir/"),
+            &TEST_MANIFEST,
+            Path::new("/path/to/working/dir/"),
+            Operation::Remove { name: "anyhow-dev" },
+        )
+        .unwrap();
+
+        insta::assert_toml_snapshot!(manifest_after_removing, @r###"
+        '''
+        [package]
+        name = "package-name"
+        version = "0.1.0"
+        edition = "2021"
+
+        # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+        
+        [dependencies]
+        anyhow = "1.0.40"
+        pathdiff = "0.2.1"
+        custom-package = { git = "https://link/to/crate" }
+
+        [patch.crates-io]
+        anyhow = { git = "https://github.com/dtolnay/anyhow.git" }
 
         [patch."https://link/to/crate"]
         custom-package = { path = "../path/to/crate" }
