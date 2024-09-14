@@ -1335,7 +1335,9 @@ fn remove_override() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @"");
+    insta::assert_snapshot!(stderr,  @r###"
+    Removed package patch "anyhow"
+    "###);
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -1446,7 +1448,9 @@ fn remove_override_renamed_patch() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @"");
+    insta::assert_snapshot!(stderr,  @r###"
+    Removed package patch "anyhow-main"
+    "###);
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
