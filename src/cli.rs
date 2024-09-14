@@ -85,6 +85,7 @@ pub struct Git {
 
 #[derive(Args, Debug)]
 pub struct RmOverride {
+    /// Name of the package to remove the override for. If a renamed patch should be removed, use the new name.
     #[arg(short, long)]
     pub package: String,
 
