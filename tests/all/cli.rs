@@ -81,6 +81,37 @@ fn override_subcommand_help_message() {
 }
 
 #[googletest::test]
+fn rm_override_subcommand_help_message() {
+    insta::allow_duplicates! {
+        for base_command in ["cargo override", "cargo-override"] {
+            let output = Cli::try_parse_from([base_command, "rm-override", "--help"]);
+
+            let output = output.expect_err("`--help` messages comes up as an `Result::Err`");
+
+            let output = strip_ansi_escapes::strip_str(format!("{}", output.render().ansi()));
+
+            insta::assert_snapshot!(output, @r###"
+            Remove an override from the `[patch]` section of `Cargo.toml`s for a package
+
+            Usage: cargo rm-override [OPTIONS] --package <PACKAGE>
+
+            Options:
+            -p, --package <PACKAGE>
+
+                --manifest-path <MANIFEST_PATH>
+                    Path to the `Cargo.toml` file that needs patching. By default, `cargo-override` searches for the `Cargo.toml` file in the current directory or any parent directory
+                --locked
+                    Assert that `Cargo.lock` will remain unchanged
+            -h, --help
+                    Print help
+            -V, --version
+                    Print version
+            "###);
+        }
+    }
+}
+
+#[googletest::test]
 fn base_help_message() {
     insta::allow_duplicates! {
         for base_command in ["cargo override", "cargo-override"] {
