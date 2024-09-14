@@ -96,16 +96,16 @@ fn rm_override_subcommand_help_message() {
             Usage: cargo rm-override [OPTIONS] --package <PACKAGE>
 
             Options:
-            -p, --package <PACKAGE>
-
-                --manifest-path <MANIFEST_PATH>
-                    Path to the `Cargo.toml` file that needs patching. By default, `cargo-override` searches for the `Cargo.toml` file in the current directory or any parent directory
-                --locked
-                    Assert that `Cargo.lock` will remain unchanged
-            -h, --help
-                    Print help
-            -V, --version
-                    Print version
+              -p, --package <PACKAGE>
+                      Name of the package to remove the override for. If a renamed patch should be removed, use the new name
+                  --manifest-path <MANIFEST_PATH>
+                      Path to the `Cargo.toml` file that needs patching. By default, `cargo-override` searches for the `Cargo.toml` file in the current directory or any parent directory
+                  --locked
+                      Assert that `Cargo.lock` will remain unchanged
+              -h, --help
+                      Print help
+              -V, --version
+                      Print version
             "###);
         }
     }
@@ -127,13 +127,13 @@ fn base_help_message() {
             Usage: cargo <COMMAND>
 
             Commands:
-            override     Quickly override dependencies using the `[patch]` section of `Cargo.toml`s.
-            rm-override  Remove an override from the `[patch]` section of `Cargo.toml`s for a package
-            help         Print this message or the help of the given subcommand(s)
+              override     Quickly override dependencies using the `[patch]` section of `Cargo.toml`s.
+              rm-override  Remove an override from the `[patch]` section of `Cargo.toml`s for a package
+              help         Print this message or the help of the given subcommand(s)
 
             Options:
-            -h, --help     Print help
-            -V, --version  Print version
+              -h, --help     Print help
+              -V, --version  Print version
             "###);
         }
     }
