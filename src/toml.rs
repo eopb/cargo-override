@@ -1,114 +1,152 @@
 use crate::context;
 
-use std::{iter::FromIterator, path, path::Path};
+use std::{
+    iter::FromIterator,
+    path::{self, Path, PathBuf},
+};
 
 use anyhow::{bail, Context};
 use cargo_util_schemas::core::GitReference;
 use fs_err as fs;
 use pathdiff::diff_paths;
 
-pub enum Operation<'a> {
-    Add {
-        registry: &'a str,
-        name: &'a str,
-        mode: &'a context::Mode,
-    },
-    Remove {
-        name: &'a str,
-    },
+pub struct Manifest {
+    path: PathBuf,
+    manifest: toml_edit::DocumentMut,
+    written: bool,
 }
 
-pub fn patch_manifest(
-    working_dir: &Path,
-    manifest: &str,
-    manifest_directory: &Path,
-    op: Operation,
-) -> anyhow::Result<String> {
-    let mut manifest: toml_edit::DocumentMut = manifest
-        .parse()
-        .context("patch manifest contains invalid toml")?;
-
-    let manifest_table = manifest.as_table_mut();
-
-    match op {
-        Operation::Add {
-            registry,
-            name,
-            mode,
-        } => add_patch_to_manifest(
-            working_dir,
-            manifest_table,
-            manifest_directory,
-            registry,
-            name,
-            mode,
-        )?,
-        Operation::Remove { name } => remove_patch_from_manifest(manifest_table, name)?,
+impl Manifest {
+    pub fn new(path: impl Into<PathBuf>) -> anyhow::Result<Self> {
+        let path = path.into();
+        let content = Self::read(path.as_path())?;
+        let manifest = Self::parse(content)?;
+        Ok(Self {
+            path,
+            manifest,
+            written: false,
+        })
     }
 
-    Ok(manifest.to_string())
-}
+    fn read(path: &Path) -> anyhow::Result<String> {
+        fs::read_to_string(path).context("failed to read patch manifest")
+    }
 
-fn add_patch_to_manifest(
-    working_dir: &Path,
-    manifest_table: &mut toml_edit::Table,
-    manifest_directory: &Path,
-    registry: &str,
-    name: &str,
-    mode: &context::Mode,
-) -> anyhow::Result<()> {
-    let patch_table = create_subtable(manifest_table, "patch", true)?;
-    let registry_table = create_subtable(patch_table, registry, false)?;
+    fn parse(content: String) -> anyhow::Result<toml_edit::DocumentMut> {
+        content
+            .parse()
+            .context("patch manifest contains invalid toml")
+    }
 
-    toml_edit::Table::insert(
-        registry_table,
-        name,
-        toml_edit::Item::Value(toml_edit::Value::InlineTable(source(
+    pub fn write(mut self) -> anyhow::Result<()> {
+        fs::write(&self.path, self.manifest.to_string())
+            .context("failed to write patched `Cargo.toml` file")?;
+        self.written = true;
+        Ok(())
+    }
+
+    pub fn add_patch(
+        &mut self,
+        working_dir: &Path,
+        manifest_directory: &Path,
+        registry: &str,
+        name: &str,
+        mode: &context::Mode,
+    ) -> anyhow::Result<()> {
+        let manifest_table = self.as_table_mut();
+
+        Self::add_patch_to_manifest(
+            manifest_table,
             working_dir,
             manifest_directory,
+            registry,
+            name,
             mode,
-        ))),
-    );
+        )
+    }
 
-    Ok(())
-}
+    pub fn remove_patch(&mut self, name: &str) -> anyhow::Result<bool> {
+        let manifest_table = self.as_table_mut();
 
-fn remove_patch_from_manifest(
-    manifest_table: &mut toml_edit::Table,
-    name: &str,
-) -> anyhow::Result<()> {
-    if let Some(patch_table) = manifest_table.get_mut("patch") {
-        let mut to_remove_registry = None;
+        Self::remove_patch_from_manifest(manifest_table, name)
+    }
 
-        let patch_table = patch_table.as_table_mut().unwrap();
-        for (registry_name, patch_table_item) in patch_table.iter_mut() {
-            let registry_table = patch_table_item.as_table_mut().unwrap();
-            if registry_table.remove(name).is_some() {
-                if registry_table.is_empty() {
-                    to_remove_registry = Some(registry_name.to_owned());
+    fn add_patch_to_manifest(
+        manifest_table: &mut toml_edit::Table,
+        working_dir: &Path,
+        manifest_directory: &Path,
+        registry: &str,
+        name: &str,
+        mode: &context::Mode,
+    ) -> anyhow::Result<()> {
+        let patch_table = create_subtable(manifest_table, "patch", true)?;
+        let registry_table = create_subtable(patch_table, registry, false)?;
+
+        toml_edit::Table::insert(
+            registry_table,
+            name,
+            toml_edit::Item::Value(toml_edit::Value::InlineTable(source(
+                working_dir,
+                manifest_directory,
+                mode,
+            ))),
+        );
+
+        Ok(())
+    }
+
+    fn remove_patch_from_manifest(
+        manifest_table: &mut toml_edit::Table,
+        name: &str,
+    ) -> anyhow::Result<bool> {
+        let mut removed = false;
+        if let Some(patch_table) = manifest_table.get_mut("patch") {
+            let mut to_remove_registry = None;
+
+            let patch_table = patch_table.as_table_mut().unwrap();
+            for (registry_name, patch_table_item) in patch_table.iter_mut() {
+                let registry_table = patch_table_item.as_table_mut().unwrap();
+                if registry_table.remove(name).is_some() {
+                    removed = true;
+
+                    if registry_table.is_empty() {
+                        to_remove_registry = Some(registry_name.to_owned());
+                    }
+
+                    // We can stop searching, it should be only one patch per package name.
+                    break;
                 }
+            }
 
-                // We can stop searching, it should be only one patch per package name.
-                break;
+            // TODO: somehow it removes the comment in the manifest file -> see test
+            //       Removes a comment in the final toml file when using the tool as well
+            //       Maybe it thinks the comment refers to the table.
+            //       Reason: sees a comment before a table as a decor which belongs to it
+            //       Solution: don't remove if there is any comment in front of the table?
+            //       Solution2: toml_edit should only take direct attached comments as prefix?
+            //       On the other hand it wouldn't be a problem if we add the patch section at the end,
+            //            there shouldn't be any comments before it, which do not belong to it.
+            //
+            // If the patch table is empty afterwards, will remove the patch table automatically as well.
+            if let Some(registry_name) = to_remove_registry {
+                patch_table.remove(registry_name.as_str());
             }
         }
 
-        // TODO: somehow it removes the comment in the manifest file -> see test
-        //       Removes a comment in the final toml file when using the tool as well
-        //       Maybe it thinks the comment refers to the table.
-        //       Reason: sees a comment before a table as a decor which belongs to it
-        //       Solution: don't remove if there is any comment in front of the table?
-        //       Solution2: toml_edit should only take direct attached comments as prefix?
-        //       On the other hand it wouldn't be a problem if we add the patch section at the end,
-        //            there shouldn't be any comments before it, which do not belong to it.
-        //
-        // If the patch table is empty afterwards, will remove the patch table automatically as well.
-        if let Some(registry_name) = to_remove_registry {
-            patch_table.remove(registry_name.as_str());
-        }
+        Ok(removed)
     }
 
-    Ok(())
+    fn as_table_mut(&mut self) -> &mut toml_edit::Table {
+        self.manifest.as_table_mut()
+    }
+}
+
+impl Drop for Manifest {
+    fn drop(&mut self) {
+        if !self.written {
+            eprintln!("`Manifest` dropped without writing to file");
+        }
+    }
 }
 
 fn source(
@@ -186,6 +224,16 @@ fn create_subtable<'a>(
 mod test {
     use super::*;
 
+    fn modify_manifest<T>(
+        manifest: &str,
+        f: impl FnOnce(&mut toml_edit::Table) -> anyhow::Result<T>,
+    ) -> anyhow::Result<(String, T)> {
+        let mut manifest: toml_edit::DocumentMut = manifest.parse().unwrap();
+        let table = manifest.as_table_mut();
+        let res = f(table)?;
+        Ok((manifest.to_string(), res))
+    }
+
     const TEST_MANIFEST: &str = r###"[package]
 name = "package-name"
 version = "0.1.0"
@@ -209,16 +257,16 @@ custom-package = { path = "../path/to/crate" }
 
     #[test]
     fn test_patch_manifest_add() {
-        let manifest_after_adding = patch_manifest(
-            Path::new("/path/to/working/dir/"),
-            TEST_MANIFEST,
-            Path::new("/path/to/working/dir/"),
-            Operation::Add {
-                registry: "crates-io",
-                name: "pathdiff",
-                mode: &context::Mode::Path("../path/to/pathdiff".into()),
-            },
-        )
+        let (manifest_after_adding, _) = modify_manifest(TEST_MANIFEST, |manifest_table| {
+            Manifest::add_patch_to_manifest(
+                manifest_table,
+                Path::new("/path/to/working/dir/"),
+                Path::new("/path/to/working/dir/"),
+                "crates-io",
+                "pathdiff",
+                &context::Mode::Path("../path/to/pathdiff".into()),
+            )
+        })
         .unwrap();
 
         insta::assert_toml_snapshot!(manifest_after_adding, @r###"
@@ -249,15 +297,12 @@ custom-package = { path = "../path/to/crate" }
 
     #[test]
     fn test_patch_manifest_remove() {
-        let manifest_after_removing = patch_manifest(
-            Path::new("/path/to/working/dir/"),
-            &TEST_MANIFEST,
-            Path::new("/path/to/working/dir/"),
-            Operation::Remove {
-                name: "custom-package",
-            },
-        )
+        let (manifest_after_removing, removed) = modify_manifest(TEST_MANIFEST, |manifest_table| {
+            Manifest::remove_patch_from_manifest(manifest_table, "custom-package")
+        })
         .unwrap();
+
+        assert!(removed);
 
         insta::assert_toml_snapshot!(manifest_after_removing, @r###"
         '''
@@ -279,13 +324,12 @@ custom-package = { path = "../path/to/crate" }
         '''
         "###);
 
-        let manifest_after_removing = patch_manifest(
-            Path::new("/path/to/working/dir/"),
-            &TEST_MANIFEST,
-            Path::new("/path/to/working/dir/"),
-            Operation::Remove { name: "anyhow-dev" },
-        )
+        let (manifest_after_removing, removed) = modify_manifest(TEST_MANIFEST, |manifest_table| {
+            Manifest::remove_patch_from_manifest(manifest_table, "anyhow-dev")
+        })
         .unwrap();
+
+        assert!(removed);
 
         insta::assert_toml_snapshot!(manifest_after_removing, @r###"
         '''
@@ -312,6 +356,40 @@ custom-package = { path = "../path/to/crate" }
     }
 
     #[test]
+    fn test_patch_manifest_remove_patch_not_exists() {
+        let (manifest_after_removing, removed) = modify_manifest(TEST_MANIFEST, |manifest_table| {
+            Manifest::remove_patch_from_manifest(manifest_table, "non-existing-package")
+        })
+        .unwrap();
+
+        assert!(!removed);
+
+        insta::assert_toml_snapshot!(manifest_after_removing, @r###"
+        '''
+        [package]
+        name = "package-name"
+        version = "0.1.0"
+        edition = "2021"
+
+        # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+        [dependencies]
+        anyhow = "1.0.40"
+        pathdiff = "0.2.1"
+        custom-package = { git = "https://link/to/crate" }
+
+        [patch.crates-io]
+        anyhow = { git = "https://github.com/dtolnay/anyhow.git" }
+        anyhow-dev = { path = "../path/to/anyhow" }
+
+        # This is a patch for a custom package
+        [patch."https://link/to/crate"]
+        custom-package = { path = "../path/to/crate" }
+        '''
+        "###);
+    }
+
+    #[test]
     fn test_patch_manifest_remove_with_comment() {
         // illustrates the problem with removing a patch from a manifest with a comment
         let manifest_with_comment = r###"[package]
@@ -325,13 +403,13 @@ edition = "2021"
 anyhow = { path = "../path/to/anyhow" }
 "###;
 
-        let manifest_after_removing = patch_manifest(
-            Path::new("/path/to/working/dir/"),
-            manifest_with_comment,
-            Path::new("/path/to/working/dir/"),
-            Operation::Remove { name: "anyhow" },
-        )
-        .unwrap();
+        let (manifest_after_removing, removed) =
+            modify_manifest(manifest_with_comment, |manifest_table| {
+                Manifest::remove_patch_from_manifest(manifest_table, "anyhow")
+            })
+            .unwrap();
+
+        assert!(removed);
 
         insta::assert_toml_snapshot!(manifest_after_removing, @r###"
         '''
