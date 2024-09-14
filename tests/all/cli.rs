@@ -96,12 +96,13 @@ fn base_help_message() {
             Usage: cargo <COMMAND>
 
             Commands:
-              override  Quickly override dependencies using the `[patch]` section of `Cargo.toml`s.
-              help      Print this message or the help of the given subcommand(s)
+            override     Quickly override dependencies using the `[patch]` section of `Cargo.toml`s.
+            rm-override  Remove an override from the `[patch]` section of `Cargo.toml`s for a package
+            help         Print this message or the help of the given subcommand(s)
 
             Options:
-              -h, --help     Print help
-              -V, --version  Print version
+            -h, --help     Print help
+            -V, --version  Print version
             "###);
         }
     }
