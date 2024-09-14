@@ -22,6 +22,7 @@ jobs:
         uses: dtolnay/rust-toolchain@7b1c307e0dcbda6122208f10795a713336a9b35a
         with:
           toolchain: stable
+      - uses: Swatinem/rust-cache@v2.7.3
       - name: Run release-plz
         uses: MarcoIeni/release-plz-action@v0.5.65
         env:

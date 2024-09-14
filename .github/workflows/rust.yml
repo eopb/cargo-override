@@ -23,6 +23,7 @@ jobs:
       - uses: taiki-e/install-action@v2.43.5
         with:
           tool: cargo-hack
+      - uses: Swatinem/rust-cache@v2.7.3
       - name: build
         run: cargo hack build --feature-powerset
   test:
@@ -36,18 +37,21 @@ jobs:
       - uses: taiki-e/install-action@v2.43.5
         with:
           tool: cargo-hack
+      - uses: Swatinem/rust-cache@v2.7.3
       - name: test
         run: cargo hack test --feature-powerset --exclude-features failing_tests
   fmt:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.1.7
+      - uses: Swatinem/rust-cache@v2.7.3
       - name: fmt
         run: cargo fmt --check
   doc:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.1.7
+      - uses: Swatinem/rust-cache@v2.7.3
       - name: doc
         run: cargo doc --all-features
   minimal:
@@ -65,6 +69,7 @@ jobs:
           toolchain: nightly
       - name: rustup default stable
         run: rustup default stable
+      - uses: Swatinem/rust-cache@v2.7.3
       - name: cargo update -Zminimal-versions
         run: cargo +nightly update -Zminimal-versions
       - name: cargo check
