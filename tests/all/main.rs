@@ -25,7 +25,7 @@ use tempfile::TempDir;
 use test_case::test_case;
 
 #[googletest::test]
-fn patch_transative_on_regisrty() {
+fn patch_transitive_on_registry() {
     let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();
 
@@ -149,7 +149,7 @@ fn patch_transative_on_regisrty() {
 }
 
 #[googletest::test]
-fn patch_transative() {
+fn patch_transitive() {
     let working_dir = tempfile::Builder::new().keep(true).tempdir().unwrap();
     let working_dir = working_dir.path();
 
