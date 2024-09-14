@@ -13,7 +13,6 @@ use context::ContextBuilder;
 use std::path::Path;
 
 use anyhow::{bail, ensure, Context as _};
-use fs_err as fs;
 
 pub static DEFAULT_REGISTRY: &str = "crates-io";
 pub static DEFAULT_REGISTRY_URL: &str = "https://github.com/rust-lang/crates.io-index";
@@ -135,28 +134,21 @@ fn add_override(
         DEFAULT_REGISTRY.to_owned()
     };
 
-    let project_manifest_content =
-        fs::read_to_string(&manifest_path).context("failed to read patch manifest")?;
-
     let project_path = {
         let mut manifest_path = manifest_path.clone();
         manifest_path.pop();
         manifest_path
     };
 
-    let project_manifest_toml = toml::patch_manifest(
+    let mut manifest = toml::Manifest::new(&manifest_path)?;
+    manifest.add_patch(
         working_dir,
-        &project_manifest_content,
         &project_path,
-        toml::Operation::Add {
-            name: &patch_manifest.name,
-            registry: &registry,
-            mode: &mode,
-        },
+        &registry,
+        &patch_manifest.name,
+        &mode,
     )?;
-
-    fs::write(&manifest_path, &project_manifest_toml)
-        .context("failed to write patched `Cargo.toml` file")?;
+    manifest.write()?;
 
     eprintln!(
         "Patched dependency \"{}\" on registry \"{registry}\"",
@@ -169,8 +161,8 @@ fn add_override(
 fn remove_override(
     Context {
         manifest_path,
-        manifest_dir,
-        working_dir,
+        manifest_dir: _,
+        working_dir: _,
         cargo: _,
         force: _,
         operation,
@@ -182,18 +174,13 @@ fn remove_override(
         _ => unreachable!(),
     };
 
-    let project_manifest_content =
-        fs::read_to_string(&manifest_path).context("failed to read patch manifest")?;
+    let mut manifest = toml::Manifest::new(&manifest_path)?;
+    let success = manifest.remove_patch(package.as_str())?;
+    manifest.write()?;
 
-    let project_manifest_toml = toml::patch_manifest(
-        working_dir,
-        project_manifest_content.as_str(),
-        manifest_dir.as_path(),
-        toml::Operation::Remove { name: &package },
-    )?;
-
-    fs::write(&manifest_path, &project_manifest_toml)
-        .context("failed to write patched `Cargo.toml` file")?;
+    if success {
+        eprintln!("Removed package patch \"{}\"", package);
+    }
 
     Ok(())
 }
