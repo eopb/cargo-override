@@ -27,7 +27,7 @@ pub fn crate_details(
             bail!("no package found in directory \"{project_dir:?}\"")
         }
         [_, _, ..] => {
-            bail!("multiple candiate packages found in directory \"{project_dir:?}\"")
+            bail!("multiple candidate packages found in directory \"{project_dir:?}\"")
         }
         [package] => package,
     };

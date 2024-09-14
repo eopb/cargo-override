@@ -476,16 +476,20 @@ fn project_is_workspace() {
 
     let manifest = fs::read_to_string(workspace_folder_manifest_path).unwrap();
 
-    insta::assert_toml_snapshot!(manifest, @r###"
-    '''
+    insta::with_settings!({filters => vec![
+        (r#"[\"\']\.\.[\/\\]anyhow[\"\']"#, "[PATH]"),
+    ]}, {
+        insta::assert_toml_snapshot!(manifest, @r#"
+        '''
 
-            [workspace]
-            members = ["subdir"]
+                [workspace]
+                members = ["subdir"]
 
-    [patch.crates-io]
-    anyhow = { path = "../anyhow" }
-            '''
-    "###);
+        [patch.crates-io]
+        anyhow = { path = [PATH] }
+                '''
+        "#);
+    });
 }
 
 #[googletest::test]
@@ -539,26 +543,30 @@ fn patch_manifest_in_subdir() {
 
     let manifest = fs::read_to_string(project_manifest_path).unwrap();
 
-    insta::assert_toml_snapshot!(manifest, @r###"
-    '''
-    [package]
-    name = "package-name"
-    version = "0.1.0"
-    edition = "2021"
+    insta::with_settings!({filters => vec![
+        (r#"[\"\']\.\.[\/\\]anyhow[\"\']"#, "[PATH]"),
+    ]}, {
+        insta::assert_toml_snapshot!(manifest, @r##"
+        '''
+        [package]
+        name = "package-name"
+        version = "0.1.0"
+        edition = "2021"
 
-    # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+        # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-    [dependencies]
-    anyhow = "1.0.86"
+        [dependencies]
+        anyhow = "1.0.86"
 
-    [[bin]]
-    name = "package-name"
-    path = "src/main.rs"
+        [[bin]]
+        name = "package-name"
+        path = "src/main.rs"
 
-    [patch.crates-io]
-    anyhow = { path = "../anyhow" }
-    '''
-    "###);
+        [patch.crates-io]
+        anyhow = { path = [PATH] }
+        '''
+        "##);
+    });
 }
 
 #[googletest::test]
@@ -610,11 +618,13 @@ fn patch_absolute_path() {
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
     insta::with_settings!({filters => vec![
-        (r"tmp\/\.tmp.*\/", "[TEMPDIR]"),
-        (r"var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
+        (r"\/tmp\/\.tmp.*\/", "[TEMPDIR]"),
+        (r"\/var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
+        (r"C\:\\Users\\.*\\Temp\\\.tmp.*\\", "[TEMPDIR]"),
+        ("\'", "\""),
     ]}, {
-        insta::assert_toml_snapshot!(manifest, @r###"
-        '''
+        insta::assert_toml_snapshot!(manifest, @r##"
+        """
         [package]
         name = "package-name"
         version = "0.1.0"
@@ -630,9 +640,9 @@ fn patch_absolute_path() {
         path = "src/main.rs"
 
         [patch.crates-io]
-        anyhow = { path = "/[TEMPDIR]anyhow" }
-        '''
-        "###);
+        anyhow = { path = "[TEMPDIR]anyhow" }
+        """
+        "##);
     });
 }
 
@@ -883,9 +893,10 @@ fn missing_manifest() {
     assert.failure();
 
     insta::with_settings!({filters => vec![
-        (r"tmp\/\.tmp.*\/", "[TEMPDIR]"),
-        (r"private\/var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
-        (r"var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
+        (r"\/tmp\/\.tmp.*\/", "[TEMPDIR]"),
+        (r"\/private\/var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
+        (r"\/var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
+        (r"C\:\\Users\\.*\\Temp\\\.tmp.*\\", "[TEMPDIR]"),
         (&patch_folder, "[PATCH]"),
     ]}, {
         insta::assert_snapshot!(stdout, @"");
@@ -893,7 +904,7 @@ fn missing_manifest() {
         error: Unable to run `cargo metadata`
 
         Caused by:
-            `cargo metadata` exited with an error: error: failed to parse manifest at `/[TEMPDIR]Cargo.toml`
+            `cargo metadata` exited with an error: error: failed to parse manifest at `[TEMPDIR]Cargo.toml`
             
             Caused by:
               virtual manifests must be configured with [workspace]
@@ -923,16 +934,17 @@ fn patch_path_doesnt_exist() {
     insta::with_settings!({filters => vec![
         (r"tmp\/\.tmp.*\/", "[TEMPDIR]"),
         (r"var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
+        (r"(No such file or directory)?(The directory name is invalid\.)? \(os error .*\)", "[OSERROR]"),
         (&patch_folder, "[PATCH]"),
     ]}, {
         insta::assert_snapshot!(stdout, @"");
-        insta::assert_snapshot!(stderr, @r###"
+        insta::assert_snapshot!(stderr, @r#"
         error: Unable to run `cargo metadata`
 
         Caused by:
-            0: failed to start `cargo metadata`: No such file or directory (os error 2)
-            1: No such file or directory (os error 2)
-        "###);
+            0: failed to start `cargo metadata`: [OSERROR]
+            1: [OSERROR]
+        "#);
     });
 }
 
@@ -958,9 +970,10 @@ fn patch_manifest_doesnt_exist() {
     assert.failure();
 
     insta::with_settings!({filters => vec![
-        (r"tmp\/\.tmp.*\/", "[TEMPDIR]"),
-        (r"private\/var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
-        (r"var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
+        (r"\/tmp\/\.tmp.*\/", "[TEMPDIR]"),
+        (r"\/private\/var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
+        (r"\/var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
+        (r"C\:\\Users\\.*\\Temp\\\.tmp.*\\", "[TEMPDIR]"),
         (&patch_folder, "[PATCH]"),
     ]}, {
         insta::assert_snapshot!(stdout, @"");
@@ -968,7 +981,7 @@ fn patch_manifest_doesnt_exist() {
         error: Unable to run `cargo metadata`
 
         Caused by:
-            `cargo metadata` exited with an error: error: could not find `Cargo.toml` in `/[TEMPDIR][PATCH]` or any parent directory
+            `cargo metadata` exited with an error: error: could not find `Cargo.toml` in `[TEMPDIR][PATCH]` or any parent directory
             
         "###);
     });
