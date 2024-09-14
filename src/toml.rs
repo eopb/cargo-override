@@ -191,6 +191,7 @@ custom-package = { git = "https://link/to/crate" }
 anyhow = { git = "https://github.com/dtolnay/anyhow.git" }
 anyhow-dev = { path = "../path/to/anyhow" }
 
+# This is a patch for a custom package
 [patch."https://link/to/crate"]
 custom-package = { path = "../path/to/crate" }
 "###;
@@ -228,6 +229,7 @@ custom-package = { path = "../path/to/crate" }
         anyhow-dev = { path = "../path/to/anyhow" }
         pathdiff = { path = "../path/to/pathdiff" }
 
+        # This is a patch for a custom package
         [patch."https://link/to/crate"]
         custom-package = { path = "../path/to/crate" }
         '''
@@ -291,6 +293,7 @@ custom-package = { path = "../path/to/crate" }
         [patch.crates-io]
         anyhow = { git = "https://github.com/dtolnay/anyhow.git" }
 
+        # This is a patch for a custom package
         [patch."https://link/to/crate"]
         custom-package = { path = "../path/to/crate" }
         '''
