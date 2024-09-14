@@ -299,4 +299,36 @@ custom-package = { path = "../path/to/crate" }
         '''
         "###);
     }
+
+    #[test]
+    fn test_patch_manifest_remove_with_comment() {
+        // illustrates the problem with removing a patch from a manifest with a comment
+        let manifest_with_comment = r###"[package]
+name = "package-name"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[patch.crates-io]
+anyhow = { path = "../path/to/anyhow" }
+"###;
+
+        let manifest_after_removing = patch_manifest(
+            Path::new("/path/to/working/dir/"),
+            manifest_with_comment,
+            Path::new("/path/to/working/dir/"),
+            Operation::Remove { name: "anyhow" },
+        )
+        .unwrap();
+
+        insta::assert_toml_snapshot!(manifest_after_removing, @r###"
+        '''
+        [package]
+        name = "package-name"
+        version = "0.1.0"
+        edition = "2021"
+        '''
+        "###);
+    }
 }
