@@ -1,18 +1,59 @@
-use crate::cli;
+use std::path::{Path, PathBuf};
+
+use crate::{cli, metadata, CARGO_TOML};
 
 use anyhow::bail;
 use camino::Utf8PathBuf;
 use cargo_util_schemas::core::GitReference;
 use url::Url;
 
-pub struct Context {
+
+pub struct ContextBuilder<'a> {
+    cargo: Cargo,
+    registry_hint: Option<String>,
+    manifest_path: Option<Utf8PathBuf>,
+    working_dir: Option<&'a Path>,
+    operation: Option<Operation>,
+    force: bool,
+}
+
+impl<'a> ContextBuilder<'a> {
+    pub fn build(self, working_dir: &Path) -> anyhow::Result<Context<'a>> {
+        let (manifest_dir, manifest_path) = compute_manifest_paths(
+            working_dir,
+            self.cargo,
+            self.manifest_path,
+        )?;
+
+        Ok(Context {
+            cargo: self.cargo,
+            registry_hint: self.registry_hint,
+            manifest_path,
+            manifest_dir,
+            working_dir: self.working_dir.unwrap(),
+            operation: self.operation.unwrap(),
+            force: self.force,
+        })
+    }
+}
+
+pub enum Operation {
+    Override { mode: Mode },
+    Remove { name: String },
+}
+
+pub struct Context<'a> {
     pub cargo: Cargo,
 
     pub registry_hint: Option<String>,
 
-    pub manifest_path: Option<Utf8PathBuf>,
+    pub manifest_path: PathBuf,
 
-    pub mode: Mode,
+    pub manifest_dir: PathBuf,
+
+    pub working_dir: &'a Path,
+
+    pub operation: Operation,
 
     pub force: bool,
 }
@@ -28,59 +69,101 @@ pub enum Mode {
     Git { url: Url, reference: GitReference },
 }
 
-impl TryFrom<cli::Override> for Context {
+impl TryFrom<cli::Cli> for ContextBuilder<'_> {
     type Error = anyhow::Error;
 
-    fn try_from(
-        cli::Override {
-            locked,
-            offline,
-            frozen,
-            registry,
-            manifest_path,
-            source: cli::Source { path, git },
-            git: cli::Git { branch, tag, rev },
-            force,
-        }: cli::Override,
-    ) -> Result<Self, Self::Error> {
-        // `--frozen` implies `--locked` and `--offline`
-        let [locked, offline] = [locked, offline].map(|f| f || frozen);
+    fn try_from(cli: cli::Cli) -> Result<Self, Self::Error> {
+        match cli.command {
+            cli::CargoInvocation::Override(override_) => {
+                let cli::Override {
+                    locked,
+                    offline,
+                    frozen,
+                    registry,
+                    manifest_path,
+                    source: cli::Source { path, git },
+                    git: cli::Git { branch, tag, rev },
+                    force,
+                } = override_;
 
-        let cargo = Cargo { locked, offline };
+                let [locked, offline] = [locked, offline].map(|f| f || frozen);
 
-        let mode = match (git, path) {
-            (Some(git), None) => Mode::Git {
-                url: git,
-                reference: {
-                    match (branch, tag, rev) {
-                        (None, None, None) => GitReference::DefaultBranch,
-                        (Some(branch), None, None) => GitReference::Branch(branch),
-                        (None, Some(tag), None) => GitReference::Tag(tag),
-                        (None, None, Some(rev)) => GitReference::Rev(rev),
-                        _ => bail!("multiple git identifiers used. Only use one of `--branch`, `--tag` or `--rev`")
-
+                let mode = match (git, path) {
+                    (Some(git), None) => Mode::Git {
+                        url: git,
+                        reference: {
+                            match (branch, tag, rev) {
+                                (None, None, None) => GitReference::DefaultBranch,
+                                (Some(branch), None, None) => GitReference::Branch(branch),
+                                (None, Some(tag), None) => GitReference::Tag(tag),
+                                (None, None, Some(rev)) => GitReference::Rev(rev),
+                                _ => bail!("multiple git identifiers used. Only use one of `--branch`, `--tag` or `--rev`")
+        
+                            }
+                        },
+                    },
+                    (None, Some(path)) => Mode::Path(path),
+                    (Some(_), Some(_)) => {
+                        bail!("`--git` can not bot set at the same time as `--path`")
                     }
+                    (None, None) => {
+                        bail!("specify a package to patch with using `--path` or `--git`")
+                    }
+                };
+
+                Ok(Self {
+                    cargo: Cargo {
+                        locked,
+                        offline,
+                    },
+                    working_dir: None,
+                    registry_hint: registry,
+                    manifest_path,
+                    operation: Some(Operation::Override { mode }),
+                    force,
+                })
+            }
+            cli::CargoInvocation::RmOverride(rm_override) => Ok(Self {
+                cargo: Cargo {
+                    locked: false,
+                    offline: false,
                 },
-            },
-            (None, Some(path)) => Mode::Path(path),
-            (Some(_), Some(_)) => {
-                bail!("`--git` can not bot set at the same time as `--path`")
-            }
-            (None, None) => {
-                bail!("specify a package to patch with using `--path` or `--git`")
-            }
-        };
-
-        Ok(Self {
-            cargo,
-
-            registry_hint: registry,
-
-            manifest_path,
-
-            mode,
-
-            force,
-        })
+                working_dir: None,
+                registry_hint: None,
+                manifest_path: None,
+                operation: Some(Operation::Remove {
+                    name: rm_override.package,
+                }),
+                force: true,
+            })
+        }
     }
+}
+
+fn compute_manifest_paths(
+    working_dir: &Path,
+    cargo: Cargo,
+    manifest_path: Option<Utf8PathBuf>,
+) -> anyhow::Result<(PathBuf, PathBuf)> {
+    let manifest_dir = manifest_path.map(|mut path| {
+        path.pop();
+        path
+    });
+
+    let manifest_dir = manifest_dir
+        .as_ref()
+        .map(|path| path.as_path().as_std_path())
+        .unwrap_or(working_dir);
+
+    let manifest_path = project_manifest(manifest_dir, cargo)?;
+
+    Ok((manifest_dir.to_owned(), manifest_path))
+}
+
+fn project_manifest(manifest_path: &Path, cargo: Cargo) -> anyhow::Result<PathBuf> {
+    let manifest = metadata::workspace_root(manifest_path, cargo)?.join(CARGO_TOML);
+
+    debug_assert!(manifest.is_file(), "{:?} is not a file", manifest);
+
+    Ok(manifest)
 }
