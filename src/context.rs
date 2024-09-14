@@ -8,17 +8,16 @@ use cargo_util_schemas::core::GitReference;
 use url::Url;
 
 
-pub struct ContextBuilder<'a> {
+pub struct ContextBuilder {
     cargo: Cargo,
     registry_hint: Option<String>,
     manifest_path: Option<Utf8PathBuf>,
-    working_dir: Option<&'a Path>,
     operation: Option<Operation>,
     force: bool,
 }
 
-impl<'a> ContextBuilder<'a> {
-    pub fn build(self, working_dir: &Path) -> anyhow::Result<Context<'a>> {
+impl ContextBuilder {
+    pub fn build<'a>(self, working_dir: &'a Path) -> anyhow::Result<Context<'a>> {
         let (manifest_dir, manifest_path) = compute_manifest_paths(
             working_dir,
             self.cargo,
@@ -30,7 +29,7 @@ impl<'a> ContextBuilder<'a> {
             registry_hint: self.registry_hint,
             manifest_path,
             manifest_dir,
-            working_dir: self.working_dir.unwrap(),
+            working_dir: working_dir,
             operation: self.operation.unwrap(),
             force: self.force,
         })
@@ -69,7 +68,7 @@ pub enum Mode {
     Git { url: Url, reference: GitReference },
 }
 
-impl TryFrom<cli::Cli> for ContextBuilder<'_> {
+impl TryFrom<cli::Cli> for ContextBuilder {
     type Error = anyhow::Error;
 
     fn try_from(cli: cli::Cli) -> Result<Self, Self::Error> {
@@ -116,7 +115,6 @@ impl TryFrom<cli::Cli> for ContextBuilder<'_> {
                         locked,
                         offline,
                     },
-                    working_dir: None,
                     registry_hint: registry,
                     manifest_path,
                     operation: Some(Operation::Override { mode }),
@@ -128,7 +126,6 @@ impl TryFrom<cli::Cli> for ContextBuilder<'_> {
                     locked: false,
                     offline: false,
                 },
-                working_dir: None,
                 registry_hint: None,
                 manifest_path: None,
                 operation: Some(Operation::Remove {
