@@ -45,7 +45,7 @@ pub fn get_source(
             bail!("git repo {url} does not expose any crates")
         }
         [_, _, ..] => {
-            bail!("multiple candiate packages found in git repo {url}")
+            bail!("multiple candidate packages found in git repo {url}")
         }
         [ref package] => Ok(package.root().to_path_buf()),
     }
