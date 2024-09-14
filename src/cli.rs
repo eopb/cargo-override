@@ -85,7 +85,7 @@ pub struct Git {
 
 #[derive(Args, Debug)]
 pub struct RmOverride {
-    #[arg(long)]
+    #[arg(short, long)]
     pub package: String,
 
     /// Path to the `Cargo.toml` file that needs patching.
