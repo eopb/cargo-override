@@ -7,7 +7,6 @@ use camino::Utf8PathBuf;
 use cargo_util_schemas::core::GitReference;
 use url::Url;
 
-
 pub struct ContextBuilder {
     cargo: Cargo,
     registry_hint: Option<String>,
@@ -17,19 +16,16 @@ pub struct ContextBuilder {
 }
 
 impl ContextBuilder {
-    pub fn build<'a>(self, working_dir: &'a Path) -> anyhow::Result<Context<'a>> {
-        let (manifest_dir, manifest_path) = compute_manifest_paths(
-            working_dir,
-            self.cargo,
-            self.manifest_path,
-        )?;
+    pub fn build(self, working_dir: &Path) -> anyhow::Result<Context> {
+        let (manifest_dir, manifest_path) =
+            compute_manifest_paths(working_dir, self.cargo, self.manifest_path)?;
 
         Ok(Context {
             cargo: self.cargo,
             registry_hint: self.registry_hint,
             manifest_path,
             manifest_dir,
-            working_dir: working_dir,
+            working_dir,
             operation: self.operation.unwrap(),
             force: self.force,
         })
@@ -95,7 +91,6 @@ impl TryFrom<cli::Cli> for ContextBuilder {
                                 (None, Some(tag), None) => GitReference::Tag(tag),
                                 (None, None, Some(rev)) => GitReference::Rev(rev),
                                 _ => bail!("multiple git identifiers used. Only use one of `--branch`, `--tag` or `--rev`")
-        
                             }
                         },
                     },
@@ -109,10 +104,7 @@ impl TryFrom<cli::Cli> for ContextBuilder {
                 };
 
                 Ok(Self {
-                    cargo: Cargo {
-                        locked,
-                        offline,
-                    },
+                    cargo: Cargo { locked, offline },
                     registry_hint: registry,
                     manifest_path,
                     operation: Some(Operation::Override { mode }),
@@ -130,11 +122,9 @@ impl TryFrom<cli::Cli> for ContextBuilder {
                 },
                 registry_hint: None,
                 manifest_path,
-                operation: Some(Operation::Remove {
-                    name: package,
-                }),
+                operation: Some(Operation::Remove { name: package }),
                 force: true,
-            })
+            }),
         }
     }
 }
