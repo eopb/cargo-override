@@ -7,36 +7,6 @@ use camino::Utf8PathBuf;
 use cargo_util_schemas::core::GitReference;
 use url::Url;
 
-pub struct ContextBuilder {
-    cargo: Cargo,
-    registry_hint: Option<String>,
-    manifest_path: Option<Utf8PathBuf>,
-    operation: Option<Operation>,
-    force: bool,
-}
-
-impl ContextBuilder {
-    pub fn build(self, working_dir: &Path) -> anyhow::Result<Context> {
-        let (manifest_dir, manifest_path) =
-            compute_manifest_paths(working_dir, self.cargo, self.manifest_path)?;
-
-        Ok(Context {
-            cargo: self.cargo,
-            registry_hint: self.registry_hint,
-            manifest_path,
-            manifest_dir,
-            working_dir,
-            operation: self.operation.unwrap(),
-            force: self.force,
-        })
-    }
-}
-
-pub enum Operation {
-    Override { mode: Mode },
-    Remove { name: String },
-}
-
 pub struct Context<'a> {
     pub cargo: Cargo,
 
@@ -53,15 +23,82 @@ pub struct Context<'a> {
     pub force: bool,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct Cargo {
     pub locked: bool,
     pub offline: bool,
 }
 
+impl Cargo {
+    pub fn new(locked: bool, offline: bool, frozen: bool) -> Self {
+        let [locked, offline] = [locked, offline].map(|f| f || frozen);
+        Self { locked, offline }
+    }
+}
+
+pub enum Operation {
+    Override { mode: Mode },
+    Remove { name: String },
+}
+
 pub enum Mode {
     Path(Utf8PathBuf),
     Git { url: Url, reference: GitReference },
+}
+
+#[derive(Default)]
+pub struct ContextBuilder {
+    cargo: Cargo,
+    registry_hint: Option<String>,
+    manifest_path: Option<Utf8PathBuf>,
+    operation: Option<Operation>,
+    force: bool,
+}
+
+impl ContextBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn cargo(&mut self, cargo: Cargo) -> &mut Self {
+        self.cargo = cargo;
+        self
+    }
+
+    pub fn registry_hint(&mut self, registry_hint: Option<String>) -> &mut Self {
+        self.registry_hint = registry_hint;
+        self
+    }
+
+    pub fn manifest_path(&mut self, manifest_path: Option<Utf8PathBuf>) -> &mut Self {
+        self.manifest_path = manifest_path;
+        self
+    }
+
+    pub fn operation(&mut self, operation: Operation) -> &mut Self {
+        self.operation = Some(operation);
+        self
+    }
+
+    pub fn force(&mut self, force: bool) -> &mut Self {
+        self.force = force;
+        self
+    }
+
+    pub fn build(self, working_dir: &Path) -> anyhow::Result<Context> {
+        let (manifest_dir, manifest_path) =
+            compute_manifest_paths(working_dir, self.cargo, self.manifest_path)?;
+
+        Ok(Context {
+            cargo: self.cargo,
+            registry_hint: self.registry_hint,
+            manifest_path,
+            manifest_dir,
+            working_dir,
+            operation: self.operation.expect("operation must be set"),
+            force: self.force,
+        })
+    }
 }
 
 impl TryFrom<cli::Cli> for ContextBuilder {
@@ -79,7 +116,13 @@ impl TryFrom<cli::Cli> for ContextBuilder {
                 git: cli::Git { branch, tag, rev },
                 force,
             }) => {
-                let [locked, offline] = [locked, offline].map(|f| f || frozen);
+                let mut context = ContextBuilder::new();
+
+                context
+                    .registry_hint(registry)
+                    .manifest_path(manifest_path)
+                    .force(force)
+                    .cargo(Cargo::new(locked, offline, frozen));
 
                 let mode = match (git, path) {
                     (Some(git), None) => Mode::Git {
@@ -103,28 +146,24 @@ impl TryFrom<cli::Cli> for ContextBuilder {
                     }
                 };
 
-                Ok(Self {
-                    cargo: Cargo { locked, offline },
-                    registry_hint: registry,
-                    manifest_path,
-                    operation: Some(Operation::Override { mode }),
-                    force,
-                })
+                context.operation(Operation::Override { mode });
+
+                Ok(context)
             }
             cli::CargoInvocation::RmOverride(cli::RmOverride {
                 package,
                 manifest_path,
                 locked,
-            }) => Ok(Self {
-                cargo: Cargo {
-                    locked,
-                    offline: false,
-                },
-                registry_hint: None,
-                manifest_path,
-                operation: Some(Operation::Remove { name: package }),
-                force: true,
-            }),
+            }) => {
+                let mut context = ContextBuilder::new();
+
+                context
+                    .manifest_path(manifest_path)
+                    .cargo(Cargo::new(locked, false, false))
+                    .operation(Operation::Remove { name: package });
+
+                Ok(context)
+            }
         }
     }
 }
