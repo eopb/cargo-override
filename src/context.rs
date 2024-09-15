@@ -73,18 +73,16 @@ impl TryFrom<cli::Cli> for ContextBuilder {
 
     fn try_from(cli: cli::Cli) -> Result<Self, Self::Error> {
         match cli.command {
-            cli::CargoInvocation::Override(override_) => {
-                let cli::Override {
-                    locked,
-                    offline,
-                    frozen,
-                    registry,
-                    manifest_path,
-                    source: cli::Source { path, git },
-                    git: cli::Git { branch, tag, rev },
-                    force,
-                } = override_;
-
+            cli::CargoInvocation::Override(cli::Override {
+                locked,
+                offline,
+                frozen,
+                registry,
+                manifest_path,
+                source: cli::Source { path, git },
+                git: cli::Git { branch, tag, rev },
+                force,
+            }) => {
                 let [locked, offline] = [locked, offline].map(|f| f || frozen);
 
                 let mode = match (git, path) {
@@ -121,15 +119,19 @@ impl TryFrom<cli::Cli> for ContextBuilder {
                     force,
                 })
             }
-            cli::CargoInvocation::RmOverride(rm_override) => Ok(Self {
+            cli::CargoInvocation::RmOverride(cli::RmOverride {
+                package,
+                manifest_path,
+                locked,
+            }) => Ok(Self {
                 cargo: Cargo {
-                    locked: false,
+                    locked,
                     offline: false,
                 },
                 registry_hint: None,
-                manifest_path: None,
+                manifest_path,
                 operation: Some(Operation::Remove {
-                    name: rm_override.package,
+                    name: package,
                 }),
                 force: true,
             })
