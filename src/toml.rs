@@ -13,7 +13,6 @@ use pathdiff::diff_paths;
 pub struct Manifest {
     path: PathBuf,
     manifest: toml_edit::DocumentMut,
-    written: bool,
 }
 
 impl Manifest {
@@ -21,11 +20,7 @@ impl Manifest {
         let path = path.into();
         let content = Self::read(path.as_path())?;
         let manifest = Self::parse(content)?;
-        Ok(Self {
-            path,
-            manifest,
-            written: false,
-        })
+        Ok(Self { path, manifest })
     }
 
     fn read(path: &Path) -> anyhow::Result<String> {
@@ -38,11 +33,9 @@ impl Manifest {
             .context("patch manifest contains invalid toml")
     }
 
-    pub fn write(mut self) -> anyhow::Result<()> {
+    pub fn write(self) -> anyhow::Result<()> {
         fs::write(&self.path, self.manifest.to_string())
-            .context("failed to write patched `Cargo.toml` file")?;
-        self.written = true;
-        Ok(())
+            .context("failed to write patched `Cargo.toml` file")
     }
 
     pub fn add_patch(
@@ -138,14 +131,6 @@ impl Manifest {
 
     fn as_table_mut(&mut self) -> &mut toml_edit::Table {
         self.manifest.as_table_mut()
-    }
-}
-
-impl Drop for Manifest {
-    fn drop(&mut self) {
-        if !self.written {
-            eprintln!("`Manifest` dropped without writing to file");
-        }
     }
 }
 
