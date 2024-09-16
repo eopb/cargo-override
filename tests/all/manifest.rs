@@ -180,6 +180,7 @@ pub struct Dependency {
     registry: Option<String>,
     registry_index: Option<String>,
     git: Option<String>,
+    path: Option<String>,
 }
 
 impl Dependency {
@@ -190,11 +191,17 @@ impl Dependency {
             registry: None,
             registry_index: None,
             git: None,
+            path: None,
         }
     }
 
     pub fn git(mut self, url: impl ToString) -> Dependency {
         self.git = Some(url.to_string());
+        self
+    }
+
+    pub fn path(mut self, path: impl ToString) -> Dependency {
+        self.path = Some(path.to_string());
         self
     }
 
@@ -217,6 +224,7 @@ impl Dependency {
             registry: None,
             registry_index: None,
             git: None,
+            path: None,
             name,
             version,
         } = self
@@ -239,6 +247,8 @@ impl Dependency {
 
         if let Some(git) = self.git {
             write!(f, ", git = \"{git}\"", git = git).unwrap();
+        } else if let Some(path) = self.path {
+            write!(f, ", path = \"{path}\"", path = path).unwrap();
         }
 
         if let Some(registry) = self.registry {
