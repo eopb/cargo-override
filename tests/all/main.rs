@@ -65,24 +65,23 @@ fn dependency_is_of_source_git(git_url: &str) {
 
     assert.success();
 
-    insta::assert_snapshot!(stdout, @"");
-
-    insta::with_settings!({
-        filters => vec![(git_url, "[GIT_PATH]"),]
-    }, {
-        insta::allow_duplicates! {
+    insta::allow_duplicates! {
+        insta::assert_snapshot!(stdout, @"");
+        insta::with_settings!({
+            filters => vec![(git_url, "[GIT_PATH]"),]
+        }, {
             insta::assert_snapshot!(stderr, @r###"
             Patched dependency "anyhow" on registry "[GIT_PATH]"
             "###);
-        }
-    });
+        });
+    }
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
-    insta::with_settings!({
-        filters => vec![(git_url, "[GIT_PATH]"),]
-    }, {
-        insta::allow_duplicates! {
+    insta::allow_duplicates! {
+        insta::with_settings!({
+            filters => vec![(git_url, "[GIT_PATH]"),]
+        }, {
             insta::assert_toml_snapshot!(manifest, @r###"
             '''
             [package]
@@ -103,8 +102,8 @@ fn dependency_is_of_source_git(git_url: &str) {
             anyhow = { path = "anyhow" }
             '''
             "###);
-        }
-    });
+        });
+    }
 }
 
 #[googletest::test]
