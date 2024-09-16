@@ -179,6 +179,7 @@ pub struct Dependency {
     version: String,
     registry: Option<String>,
     registry_index: Option<String>,
+    git: Option<String>,
 }
 
 impl Dependency {
@@ -188,7 +189,13 @@ impl Dependency {
             version: version.as_ref().to_owned(),
             registry: None,
             registry_index: None,
+            git: None,
         }
+    }
+
+    pub fn git(mut self, url: impl ToString) -> Dependency {
+        self.git = Some(url.to_string());
+        self
     }
 
     pub fn registry(mut self, name: impl ToString) -> Dependency {
@@ -202,40 +209,52 @@ impl Dependency {
     }
 
     fn render(self) -> String {
-        match self {
-            Self {
-                name,
-                version,
-                registry: Some(registry),
-                registry_index: None,
-            } => {
-                format!("{name} = {{ version = \"{version}\", registry = \"{registry}\" }}")
-            }
-            Self {
-                name,
-                version,
-                registry: None,
-                registry_index: Some(registry),
-            } => {
-                format!("{name} = {{ version = \"{version}\", registry-index = \"{registry}\" }}")
-            }
-            Self {
-                name,
-                version,
-                registry: None,
-                registry_index: None,
-            } => {
-                format!("{name} = \"{version}\"")
-            }
-            Self {
-                name: _,
-                version: _,
-                registry: Some(_),
-                registry_index: Some(_),
-            } => {
-                unimplemented!("cannot set bot registry and registry-index")
-            }
+        if self.registry.is_some() && self.registry_index.is_some() {
+            panic!("cannot set both registry and registry-index");
         }
+
+        if let Self {
+            registry: None,
+            registry_index: None,
+            git: None,
+            name,
+            version,
+        } = self
+        {
+            return format!("{name} = \"{version}\"");
+        }
+
+        let mut f = String::new();
+
+        let version = self.version;
+        let name = self.name;
+
+        write!(
+            f,
+            "{name} = {{ version = \"{version}\"",
+            name = name,
+            version = version
+        )
+        .unwrap();
+
+        if let Some(git) = self.git {
+            write!(f, ", git = \"{git}\"", git = git).unwrap();
+        }
+
+        if let Some(registry) = self.registry {
+            write!(f, ", registry = \"{registry}\"", registry = registry).unwrap();
+        } else if let Some(registry_index) = self.registry_index {
+            write!(
+                f,
+                ", registry-index = \"{registry_index}\"",
+                registry_index = registry_index
+            )
+            .unwrap();
+        }
+
+        write!(f, " }}").unwrap();
+
+        f
     }
 }
 
@@ -260,6 +279,29 @@ fn manifest_with_deps() {
     [dependencies]
     rand = "0.8"
     redact = "0.1.10"
+    '''
+    "###);
+}
+
+#[test]
+fn manifest_with_git_deps() {
+    let header = Header::basic("package-name");
+
+    let manifest = Manifest::new(header)
+        .add_dependency(Dependency::new("anyhow", "1.0").git("https://github.com/dtolnay/anyhow"))
+        .render();
+
+    insta::assert_toml_snapshot!(manifest, @r###"
+    '''
+    [package]
+    name = "package-name"
+    version = "0.1.0"
+    edition = "2021"
+
+    # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+    [dependencies]
+    anyhow = { version = "1.0", git = "https://github.com/dtolnay/anyhow" }
     '''
     "###);
 }
