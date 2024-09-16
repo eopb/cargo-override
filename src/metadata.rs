@@ -5,6 +5,7 @@ use std::{ops::Not, path::PathBuf};
 use anyhow::{bail, Context as _};
 use cargo::core::PackageIdSpec;
 use semver::{Version, VersionReq};
+use url::Url;
 
 #[derive(Clone)]
 pub struct Crate {
@@ -47,11 +48,12 @@ pub fn workspace_root(
     Ok(metadata.workspace_root.into())
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Dependency {
     pub name: String,
     pub requirement: Option<VersionReq>,
     pub registry: Option<String>,
+    pub repo: Option<String>,
 }
 
 pub fn direct_dependencies(
@@ -69,14 +71,42 @@ pub fn direct_dependencies(
                  name,
                  req,
                  registry,
+                 source,
                  ..
-             }| Dependency {
-                name: name.clone(),
-                requirement: Some(req.clone()),
-                registry: registry.clone(),
+             }| {
+                let source_url = source
+                    .as_ref()
+                    .and_then(|url_str| Url::parse(url_str.as_str()).ok());
+
+                Dependency {
+                    name: name.clone(),
+                    requirement: Some(req.clone()),
+                    registry: registry.clone(),
+                    repo: source_url.and_then(|url| {
+                        if is_git_url(&url) {
+                            Some(as_repo_url(&url).to_owned())
+                        } else {
+                            None
+                        }
+                    }),
+                }
             },
         )
         .collect())
+}
+
+// Url format: "git+<ssh|https>://<git@|www.>github.com/repo_path<?branch>"
+//             -> "<ssh|https>://<git@|www.>github.com/repo_path"
+fn as_repo_url(url: &Url) -> String {
+    let (_, repo_path) = url.as_str().split_once('+').unwrap();
+    let repo = repo_path.split('?').next().unwrap();
+    repo.to_owned()
+}
+
+fn is_git_url(url: &Url) -> bool {
+    url.scheme()
+        .split_once('+')
+        .map_or(false, |(scheme, _)| scheme == "git")
 }
 
 pub fn resolved_dependencies(
@@ -98,6 +128,13 @@ pub fn resolved_dependencies(
                 name: package.name().to_owned(),
                 registry: Some(package.url()?.to_string()),
                 requirement: None,
+                repo: package.url().and_then(|url| {
+                    if is_git_url(&url) {
+                        Some(as_repo_url(&url).to_owned())
+                    } else {
+                        None
+                    }
+                }), // TODO: get repo from package
             })
         })
         .collect())
