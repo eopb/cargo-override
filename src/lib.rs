@@ -85,7 +85,9 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
         dependency.registry.as_deref()
     };
 
-    let registry = if let Some(registry_url) = &dependency_registry {
+    let registry = if let Some(repo) = &dependency.repo {
+        repo.to_owned()
+    } else if let Some(registry_url) = &dependency_registry {
         let registry_guess =
             registry::get_registry_name_from_url(manifest_dir.to_path_buf(), registry_url)
                 .context("failed to guess registry")?;
