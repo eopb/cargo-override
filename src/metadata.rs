@@ -53,7 +53,6 @@ pub struct Dependency {
     pub name: String,
     pub requirement: Option<VersionReq>,
     pub registry: Option<String>,
-    pub repo: Option<String>,
 }
 
 pub fn direct_dependencies(
@@ -81,14 +80,15 @@ pub fn direct_dependencies(
                 Dependency {
                     name: name.clone(),
                     requirement: Some(req.clone()),
-                    registry: registry.clone(),
-                    repo: source_url.and_then(|url| {
-                        if is_git_url(&url) {
-                            Some(as_repo_url(&url).to_owned())
-                        } else {
-                            None
-                        }
-                    }),
+                    registry: source_url
+                        .and_then(|url| {
+                            if is_git_url(&url) {
+                                Some(as_repo_url(&url).to_owned())
+                            } else {
+                                None
+                            }
+                        })
+                        .or(registry.clone()),
                 }
             },
         )
@@ -128,13 +128,6 @@ pub fn resolved_dependencies(
                 name: package.name().to_owned(),
                 registry: Some(package.url()?.to_string()),
                 requirement: None,
-                repo: package.url().and_then(|url| {
-                    if is_git_url(&url) {
-                        Some(as_repo_url(&url).to_owned())
-                    } else {
-                        None
-                    }
-                }), // TODO: get repo from package
             })
         })
         .collect())
