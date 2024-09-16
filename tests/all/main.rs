@@ -24,6 +24,89 @@ use googletest::{expect_eq, verify_eq, verify_that};
 use tempfile::TempDir;
 use test_case::test_case;
 
+#[test_case("https://github.com/dtolnay/anyhow")]
+#[test_case("ssh://git@github.com/dtolnay/anyhow")]
+#[googletest::test]
+fn dependency_is_of_source_git(git_url: &str) {
+    let working_dir = TempDir::new().unwrap();
+    let working_dir = working_dir.path();
+
+    let patch_crate_name = "anyhow";
+    let patch_folder = patch_crate_name.to_string();
+    let patch_folder_path = working_dir.join(patch_folder.clone());
+
+    let package_name = "package_name";
+
+    // setup local crate anyhow
+    fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
+    let _patch_manifest_path = create_cargo_manifest(
+        &patch_folder_path,
+        &Manifest::new(Header::basic(patch_crate_name).version("1.1.5".to_owned()))
+            .add_target(Target::lib(package_name, "src/lib.rs"))
+            .render(),
+    );
+
+    // setup project
+    let manifest = Manifest::new(Header::basic(package_name))
+        .add_target(Target::bin(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new(patch_crate_name, "1.0").git(git_url))
+        .render();
+    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
+
+    // run command cargo-override
+    let mut command = override_path(&patch_folder, working_dir, |command| command);
+
+    let assert = command.assert();
+
+    let output = assert.get_output();
+
+    let stdout = String::from_utf8(output.stdout.clone()).unwrap();
+    let stderr = String::from_utf8(output.stderr.clone()).unwrap();
+
+    assert.success();
+
+    insta::assert_snapshot!(stdout, @"");
+
+    insta::with_settings!({
+        filters => vec![(git_url, "[GIT_PATH]"),]
+    }, {
+        insta::allow_duplicates! {
+            insta::assert_snapshot!(stderr, @r###"
+            Patched dependency "anyhow" on registry "[GIT_PATH]"
+            "###);
+        }
+    });
+
+    let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
+
+    insta::with_settings!({
+        filters => vec![(git_url, "[GIT_PATH]"),]
+    }, {
+        insta::allow_duplicates! {
+            insta::assert_toml_snapshot!(manifest, @r###"
+            '''
+            [package]
+            name = "package_name"
+            version = "0.1.0"
+            edition = "2021"
+
+            # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+            [dependencies]
+            anyhow = { version = "1.0", git = "[GIT_PATH]" }
+
+            [[bin]]
+            name = "package_name"
+            path = "src/main.rs"
+
+            [patch."[GIT_PATH]"]
+            anyhow = { path = "anyhow" }
+            '''
+            "###);
+        }
+    });
+}
+
 #[googletest::test]
 fn patch_transative_on_regisrty() {
     let working_dir = TempDir::new().unwrap();
