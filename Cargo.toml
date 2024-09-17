@@ -20,7 +20,7 @@ repository = "https://github.com/eopb/cargo-override"
 failing_tests = []
 
 [dependencies]
-anyhow = "1.0.88"
+anyhow = "1.0.89"
 camino = "1.1.9"
 cargo = "0.82.0"
 cargo_metadata = "0.18"
