@@ -20,7 +20,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4.1.7
-      - uses: taiki-e/install-action@v2.44.2
+      - uses: taiki-e/install-action@v2.44.7
         with:
           tool: cargo-hack
       - uses: Swatinem/rust-cache@v2.7.3
@@ -34,7 +34,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4.1.7
-      - uses: taiki-e/install-action@v2.44.2
+      - uses: taiki-e/install-action@v2.44.7
         with:
           tool: cargo-hack
       - uses: Swatinem/rust-cache@v2.7.3
@@ -85,7 +85,7 @@ jobs:
       with:
         toolchain: stable
     - uses: Swatinem/rust-cache@v2.7.3
-    - uses: taiki-e/install-action@v2.44.2
+    - uses: taiki-e/install-action@v2.44.7
       with:
         tool: cargo-hack
     - name: Default features
