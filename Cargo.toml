@@ -25,13 +25,13 @@ camino = "1.1.9"
 cargo = "0.82.0"
 cargo_metadata = "0.18"
 cargo-util-schemas = "0.5.0"
-clap = { version = "4.5.17", features = ["derive"] }
+clap = { version = "4.5.18", features = ["derive"] }
 fs-err = "2.11.0"
 home = "0.5.9"
 pathdiff = "0.2.1"
 semver = "1.0.23"
 serde = { version = "1.0.210", features = ["derive"] }
-toml_edit = "0.22.9"
+toml_edit = "0.22.21"
 url = "2.5.2"
 winnow = "0.6.18"
 clap-cargo = "0.14.1"
