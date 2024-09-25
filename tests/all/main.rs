@@ -967,13 +967,6 @@ fn patch_manifest_doesnt_exist() {
 
     fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
 
-    // let _patch_manifest_path = create_cargo_manifest(
-    //     &patch_folder_path,
-    //     &Manifest::new(Header::basic(patch_crate_name).version("1.1.5".to_owned()))
-    //         .add_target(Target::lib(patch_crate_name, "src/lib.rs"))
-    //         .render(),
-    // );
-
     let mut command = override_path(&patch_folder, working_dir, |command| command);
 
     let assert = command.assert();
