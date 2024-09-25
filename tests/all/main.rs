@@ -896,19 +896,14 @@ fn missing_manifest() {
         (r"\/tmp\/\.tmp.*\/", "[TEMPDIR]"),
         (r"\/private\/var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
         (r"\/var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
-        (r"C\:\\Users\\.*\\Temp\\\.tmp.*\\", "[TEMPDIR]"),
-        (&patch_folder, "[PATCH]"),
+        (r"C\:\\Users\\.*\\Temp\\\.tmp[0-9a-zA-Z]*", "[TEMPDIR]"),
     ]}, {
         insta::assert_snapshot!(stdout, @"");
         insta::assert_snapshot!(stderr, @r###"
         error: Unable to run `cargo metadata`
 
         Caused by:
-            `cargo metadata` exited with an error: error: failed to parse manifest at `[TEMPDIR]Cargo.toml`
-            
-            Caused by:
-              virtual manifests must be configured with [workspace]
-            
+            `cargo metadata` exited with an error: error: could not find `Cargo.toml` in `[TEMPDIR]` or any parent directory            
         "###);
     });
 }
@@ -917,6 +912,14 @@ fn missing_manifest() {
 fn patch_path_doesnt_exist() {
     let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();
+
+    let package_name = "package_name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        .add_target(Target::bin(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new("anyhow", "0.1.0"))
+        .render();
+    let _working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
 
     let patch_folder: String = Faker.fake();
 
@@ -932,18 +935,15 @@ fn patch_path_doesnt_exist() {
     assert.failure();
 
     insta::with_settings!({filters => vec![
-        (r"tmp\/\.tmp.*\/", "[TEMPDIR]"),
-        (r"var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
-        (r"(No such file or directory)?(The directory name is invalid\.)? \(os error .*\)", "[OSERROR]"),
-        (&patch_folder, "[PATCH]"),
+        (r".*\.", "[OS_ERROR]"),
     ]}, {
         insta::assert_snapshot!(stdout, @"");
         insta::assert_snapshot!(stderr, @r#"
         error: Unable to run `cargo metadata`
 
         Caused by:
-            0: failed to start `cargo metadata`: [OSERROR]
-            1: [OSERROR]
+            0: failed to start `cargo metadata`: [OS_ERROR] (os error 267)
+            1: [OS_ERROR] (os error 267)
         "#);
     });
 }
@@ -953,10 +953,26 @@ fn patch_manifest_doesnt_exist() {
     let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();
 
-    let patch_folder: String = Faker.fake();
-    let patch_folder_path = working_dir.join(&patch_folder);
+    let patch_crate_name = "anyhow";
+    let patch_folder = patch_crate_name.to_string();
+    let patch_folder_path = working_dir.join(patch_folder.clone());
 
-    fs::create_dir(patch_folder_path).expect("failed to create patch folder");
+    let package_name = "package_name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        .add_target(Target::bin(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new(patch_crate_name, "1.0.86"))
+        .render();
+    let _working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
+
+    fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
+
+    // let _patch_manifest_path = create_cargo_manifest(
+    //     &patch_folder_path,
+    //     &Manifest::new(Header::basic(patch_crate_name).version("1.1.5".to_owned()))
+    //         .add_target(Target::lib(patch_crate_name, "src/lib.rs"))
+    //         .render(),
+    // );
 
     let mut command = override_path(&patch_folder, working_dir, |command| command);
 
@@ -973,16 +989,12 @@ fn patch_manifest_doesnt_exist() {
         (r"\/tmp\/\.tmp.*\/", "[TEMPDIR]"),
         (r"\/private\/var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
         (r"\/var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
-        (r"C\:\\Users\\.*\\Temp\\\.tmp.*\\", "[TEMPDIR]"),
-        (&patch_folder, "[PATCH]"),
+        (r"C\:\/Users\/.*\/Temp\/\.tmp[0-9a-zA-Z]*", "[TEMPDIR]"),
     ]}, {
         insta::assert_snapshot!(stdout, @"");
         insta::assert_snapshot!(stderr, @r###"
-        error: Unable to run `cargo metadata`
-
-        Caused by:
-            `cargo metadata` exited with an error: error: could not find `Cargo.toml` in `[TEMPDIR][PATCH]` or any parent directory
-            
+        error: unable to determine registry name for `file:///[TEMPDIR]`
+                         provide it using the `--registry` flag
         "###);
     });
 }
