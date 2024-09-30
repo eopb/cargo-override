@@ -18,7 +18,7 @@ jobs:
 
     name: flake check
     steps:
-      - uses: actions/checkout@v4.1.7
+      - uses: actions/checkout@v4.2.0
         with:
           fetch-depth: 0
       - uses: DeterminateSystems/nix-installer-action@v14
@@ -29,7 +29,7 @@ jobs:
 
     name: nix fmt
     steps:
-      - uses: actions/checkout@v4.1.7
+      - uses: actions/checkout@v4.2.0
         with:
           fetch-depth: 0
       - uses: DeterminateSystems/nix-installer-action@v14
