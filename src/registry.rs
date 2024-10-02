@@ -2,12 +2,19 @@ use std::{collections::HashMap, env, ffi::OsString, io, path::PathBuf};
 
 use anyhow::Context;
 use cargo::{core::shell::Shell, util::context::GlobalContext};
+use url::Url;
 use winnow::{token::take_until, PResult, Parser};
 
 pub fn get_registry_name_from_url(
     working_dir: PathBuf,
     registry_url: &str,
 ) -> anyhow::Result<Option<String>> {
+    if let Ok(url) = Url::parse(registry_url) {
+        if matches!(url.domain(), Some(url) if url == "github.com") {
+            return Ok(Some(registry_url.to_string()));
+        }
+    }
+
     if let Some(registry) = get_registry_from_env(env::vars_os(), registry_url) {
         return Ok(Some(registry));
     }
