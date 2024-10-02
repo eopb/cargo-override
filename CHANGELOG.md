@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6](https://github.com/eopb/cargo-override/compare/v0.0.5...v0.0.6) - 2024-10-02
+
+### Other
+
+- bump the cargo-dependencies group with 4 updates ([#157](https://github.com/eopb/cargo-override/pull/157))
+- bump the github-dependencies group with 3 updates ([#156](https://github.com/eopb/cargo-override/pull/156))
+- Add clippy to CI ([#154](https://github.com/eopb/cargo-override/pull/154))
+- bump the github-dependencies group with 2 updates ([#153](https://github.com/eopb/cargo-override/pull/153))
+- bump the cargo-dependencies group with 2 updates ([#152](https://github.com/eopb/cargo-override/pull/152))
+- bump anyhow from 1.0.88 to 1.0.89 in the cargo-dependencies group ([#150](https://github.com/eopb/cargo-override/pull/150))
+- bump the github-dependencies group with 2 updates ([#149](https://github.com/eopb/cargo-override/pull/149))
+
 ## [0.0.5](https://github.com/eopb/cargo-override/compare/v0.0.4...v0.0.5) - 2024-09-14
 
 ### Added
