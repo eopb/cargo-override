@@ -8,24 +8,40 @@ mod toml;
 
 pub use cli::{CargoInvocation, Cli};
 pub use context::Context;
+use context::ContextBuilder;
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use anyhow::{bail, ensure, Context as _};
-use fs_err as fs;
 
 pub static DEFAULT_REGISTRY: &str = "crates-io";
 pub static DEFAULT_REGISTRY_URL: &str = "https://github.com/rust-lang/crates.io-index";
 pub static CARGO_TOML: &str = "Cargo.toml";
 
 pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
-    let Context {
+    let context = ContextBuilder::try_from(args)?.build(working_dir)?;
+
+    match context.operation {
+        context::Operation::Override { .. } => add_override(context),
+        context::Operation::Remove { .. } => remove_override(context),
+    }
+}
+
+fn add_override(
+    Context {
         cargo,
         manifest_path,
+        manifest_dir,
+        working_dir,
         registry_hint,
-        mode,
+        operation,
         force,
-    } = args.try_into()?;
+    }: Context,
+) -> anyhow::Result<()> {
+    let mode = match operation {
+        context::Operation::Override { mode } => mode,
+        _ => unreachable!(),
+    };
 
     let path = match &mode {
         context::Mode::Path(ref path) => working_dir.join(path),
@@ -34,21 +50,9 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
         }
     };
 
-    let manifest_dir = manifest_path.map(|mut path| {
-        path.pop();
-        path
-    });
-
-    let manifest_dir = manifest_dir
-        .as_ref()
-        .map(|path| path.as_path().as_std_path())
-        .unwrap_or(working_dir);
-
     let patch_manifest = metadata::crate_details(&path, cargo)?;
 
-    let manifest_path = project_manifest(manifest_dir, cargo)?;
-
-    let project_deps = metadata::direct_dependencies(manifest_dir, cargo)
+    let project_deps = metadata::direct_dependencies(manifest_dir.as_path(), cargo)
         .context("failed to get dependencies for current project")?;
 
     let mut direct_deps = project_deps
@@ -65,7 +69,7 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
             })
             .context("patch could not be applied because version is incompatible")?
     } else {
-        let resolved_deps = metadata::resolved_dependencies(manifest_dir, cargo)
+        let resolved_deps = metadata::resolved_dependencies(manifest_dir.as_path(), cargo)
             .context("failed to get dependencies for current project")?;
 
         &resolved_deps
@@ -86,9 +90,8 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
     };
 
     let registry = if let Some(registry_url) = &dependency_registry {
-        let registry_guess =
-            registry::get_registry_name_from_url(manifest_dir.to_path_buf(), registry_url)
-                .context("failed to guess registry")?;
+        let registry_guess = registry::get_registry_name_from_url(manifest_dir, registry_url)
+            .context("failed to guess registry")?;
 
         match (registry_hint.to_owned(), registry_guess) {
             (Some(registry), None) => registry,
@@ -131,26 +134,21 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
         DEFAULT_REGISTRY.to_owned()
     };
 
-    let project_manifest_content =
-        fs::read_to_string(&manifest_path).context("failed to read patch manifest")?;
-
     let project_path = {
         let mut manifest_path = manifest_path.clone();
         manifest_path.pop();
         manifest_path
     };
 
-    let project_manifest_toml = toml::patch_manifest(
+    let mut manifest = toml::Manifest::new(&manifest_path)?;
+    manifest.add_patch(
         working_dir,
-        &project_manifest_content,
         &project_path,
-        &patch_manifest.name,
         &registry,
+        &patch_manifest.name,
         &mode,
     )?;
-
-    fs::write(&manifest_path, &project_manifest_toml)
-        .context("failed to write patched `Cargo.toml` file")?;
+    manifest.write()?;
 
     eprintln!(
         "Patched dependency \"{}\" on registry \"{registry}\"",
@@ -160,10 +158,29 @@ pub fn run(working_dir: &Path, args: Cli) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn project_manifest(manifest_path: &Path, cargo: context::Cargo) -> anyhow::Result<PathBuf> {
-    let manifest = metadata::workspace_root(manifest_path, cargo)?.join(CARGO_TOML);
+fn remove_override(
+    Context {
+        manifest_path,
+        manifest_dir: _,
+        working_dir: _,
+        cargo: _,
+        force: _,
+        operation,
+        registry_hint: _,
+    }: Context,
+) -> anyhow::Result<()> {
+    let package = match operation {
+        context::Operation::Remove { name } => name,
+        _ => unreachable!(),
+    };
 
-    debug_assert!(manifest.is_file(), "{:?} is not a file", manifest);
+    let mut manifest = toml::Manifest::new(&manifest_path)?;
+    let success = manifest.remove_patch(package.as_str())?;
+    manifest.write()?;
 
-    Ok(manifest)
+    if success {
+        eprintln!("Removed package patch \"{}\"", package);
+    }
+
+    Ok(())
 }

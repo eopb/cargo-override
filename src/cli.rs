@@ -17,6 +17,11 @@ pub enum CargoInvocation {
     #[command(name = "override", about)]
     #[command(next_line_help = true)]
     Override(Override),
+
+    /// Remove an override from the `[patch]` section of `Cargo.toml`s for a package.
+    #[command(name = "rm-override")]
+    #[command(next_line_help = true)]
+    RmOverride(RmOverride),
 }
 
 #[derive(Args, Debug)]
@@ -76,4 +81,20 @@ pub struct Git {
     /// Specific commit to use when overriding from git
     #[arg(long)]
     pub rev: Option<String>,
+}
+
+#[derive(Args, Debug)]
+pub struct RmOverride {
+    /// Name of the package to remove the override for. If a renamed patch should be removed, use the new name.
+    #[arg(short, long)]
+    pub package: String,
+
+    /// Path to the `Cargo.toml` file that needs patching.
+    /// By default, `cargo-override` searches for the `Cargo.toml` file in the current directory or any parent directory
+    #[arg(long)]
+    pub manifest_path: Option<Utf8PathBuf>,
+
+    /// Assert that `Cargo.lock` will remain unchanged
+    #[arg(long)]
+    pub locked: bool,
 }

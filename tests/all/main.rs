@@ -5,7 +5,7 @@ mod git;
 pub mod manifest;
 
 use checksum::Checksum;
-use manifest::{Dependency, Header, Manifest, Target};
+use manifest::{Dependency, Header, LocalPatch, Manifest, Patch, PatchType, Target};
 
 use std::{
     env,
@@ -25,7 +25,7 @@ use tempfile::TempDir;
 use test_case::test_case;
 
 #[googletest::test]
-fn patch_transative_on_regisrty() {
+fn patch_transitive_on_registry() {
     let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();
 
@@ -149,7 +149,7 @@ fn patch_transative_on_regisrty() {
 }
 
 #[googletest::test]
-fn patch_transative() {
+fn patch_transitive() {
     let working_dir = tempfile::Builder::new().keep(true).tempdir().unwrap();
     let working_dir = working_dir.path();
 
@@ -896,19 +896,14 @@ fn missing_manifest() {
         (r"\/tmp\/\.tmp.*\/", "[TEMPDIR]"),
         (r"\/private\/var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
         (r"\/var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
-        (r"C\:\\Users\\.*\\Temp\\\.tmp.*\\", "[TEMPDIR]"),
-        (&patch_folder, "[PATCH]"),
+        (r"C\:\\Users\\.*\\Temp\\\.tmp[0-9a-zA-Z]*", "[TEMPDIR]"),
     ]}, {
         insta::assert_snapshot!(stdout, @"");
         insta::assert_snapshot!(stderr, @r###"
         error: Unable to run `cargo metadata`
 
         Caused by:
-            `cargo metadata` exited with an error: error: failed to parse manifest at `[TEMPDIR]Cargo.toml`
-            
-            Caused by:
-              virtual manifests must be configured with [workspace]
-            
+            `cargo metadata` exited with an error: error: could not find `Cargo.toml` in `[TEMPDIR]` or any parent directory            
         "###);
     });
 }
@@ -917,6 +912,14 @@ fn missing_manifest() {
 fn patch_path_doesnt_exist() {
     let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();
+
+    let package_name = "package_name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        .add_target(Target::bin(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new("anyhow", "0.1.0"))
+        .render();
+    let _working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
 
     let patch_folder: String = Faker.fake();
 
@@ -932,18 +935,15 @@ fn patch_path_doesnt_exist() {
     assert.failure();
 
     insta::with_settings!({filters => vec![
-        (r"tmp\/\.tmp.*\/", "[TEMPDIR]"),
-        (r"var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
-        (r"(No such file or directory)?(The directory name is invalid\.)? \(os error .*\)", "[OSERROR]"),
-        (&patch_folder, "[PATCH]"),
+        (r".*\.", "[OS_ERROR]"),
     ]}, {
         insta::assert_snapshot!(stdout, @"");
         insta::assert_snapshot!(stderr, @r#"
         error: Unable to run `cargo metadata`
 
         Caused by:
-            0: failed to start `cargo metadata`: [OSERROR]
-            1: [OSERROR]
+            0: failed to start `cargo metadata`: [OS_ERROR] (os error 267)
+            1: [OS_ERROR] (os error 267)
         "#);
     });
 }
@@ -953,10 +953,19 @@ fn patch_manifest_doesnt_exist() {
     let working_dir = TempDir::new().unwrap();
     let working_dir = working_dir.path();
 
-    let patch_folder: String = Faker.fake();
-    let patch_folder_path = working_dir.join(&patch_folder);
+    let patch_crate_name = "anyhow";
+    let patch_folder = patch_crate_name.to_string();
+    let patch_folder_path = working_dir.join(patch_folder.clone());
 
-    fs::create_dir(patch_folder_path).expect("failed to create patch folder");
+    let package_name = "package_name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        .add_target(Target::bin(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new(patch_crate_name, "1.0.86"))
+        .render();
+    let _working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
+
+    fs::create_dir(&patch_folder_path).expect("failed to create patch folder");
 
     let mut command = override_path(&patch_folder, working_dir, |command| command);
 
@@ -973,16 +982,12 @@ fn patch_manifest_doesnt_exist() {
         (r"\/tmp\/\.tmp.*\/", "[TEMPDIR]"),
         (r"\/private\/var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
         (r"\/var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
-        (r"C\:\\Users\\.*\\Temp\\\.tmp.*\\", "[TEMPDIR]"),
-        (&patch_folder, "[PATCH]"),
+        (r"C\:\/Users\/.*\/Temp\/\.tmp[0-9a-zA-Z]*", "[TEMPDIR]"),
     ]}, {
         insta::assert_snapshot!(stdout, @"");
         insta::assert_snapshot!(stderr, @r###"
-        error: Unable to run `cargo metadata`
-
-        Caused by:
-            `cargo metadata` exited with an error: error: could not find `Cargo.toml` in `[TEMPDIR][PATCH]` or any parent directory
-            
+        error: unable to determine registry name for `file:///[TEMPDIR]`
+                         provide it using the `--registry` flag
         "###);
     });
 }
@@ -1300,6 +1305,179 @@ fn patch_exists_alt_registry_from_env() {
     }
 }
 
+#[googletest::test]
+fn remove_override() {
+    let working_dir = TempDir::new().unwrap();
+    let working_dir = working_dir.path();
+
+    let patch_crate_name = "anyhow";
+
+    let package_name = "package_name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        .add_target(Target::bin(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new(patch_crate_name, "0.1.0"))
+        .add_patch(
+            "crates-io",
+            Patch::new(
+                patch_crate_name,
+                PatchType::Local(LocalPatch::new("../anyhow")),
+            ),
+        )
+        .render();
+
+    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
+
+    let mut command = rm_override(patch_crate_name, working_dir, |command| command);
+
+    let assert = command.assert();
+
+    let output = assert.get_output();
+
+    let stdout = String::from_utf8(output.stdout.clone()).unwrap();
+    let stderr = String::from_utf8(output.stderr.clone()).unwrap();
+
+    assert.success();
+
+    insta::assert_snapshot!(stdout, @"");
+    insta::assert_snapshot!(stderr,  @r###"
+    Removed package patch "anyhow"
+    "###);
+
+    let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
+
+    insta::assert_toml_snapshot!(manifest, @r###"
+    '''
+    [package]
+    name = "package_name"
+    version = "0.1.0"
+    edition = "2021"
+
+    # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+    [dependencies]
+    anyhow = "0.1.0"
+
+    [[bin]]
+    name = "package_name"
+    path = "src/main.rs"
+    '''
+    "###);
+}
+
+#[googletest::test]
+fn remove_override_no_patch_exists() {
+    let working_dir = TempDir::new().unwrap();
+    let working_dir = working_dir.path();
+
+    let patch_crate_name = "anyhow";
+
+    let package_name = "package_name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        .add_target(Target::bin(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new(patch_crate_name, "0.1.0"))
+        .render();
+
+    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
+
+    let mut command = rm_override(patch_crate_name, working_dir, |command| command);
+
+    let assert = command.assert();
+
+    let output = assert.get_output();
+
+    let stdout = String::from_utf8(output.stdout.clone()).unwrap();
+    let stderr = String::from_utf8(output.stderr.clone()).unwrap();
+
+    assert.success();
+
+    insta::assert_snapshot!(stdout, @"");
+    insta::assert_snapshot!(stderr, @"");
+
+    let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
+
+    insta::assert_toml_snapshot!(manifest, @r###"
+    '''
+    [package]
+    name = "package_name"
+    version = "0.1.0"
+    edition = "2021"
+
+    # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+    [dependencies]
+    anyhow = "0.1.0"
+
+    [[bin]]
+    name = "package_name"
+    path = "src/main.rs"
+    '''
+    "###);
+}
+
+#[googletest::test]
+fn remove_override_renamed_patch() {
+    let working_dir = TempDir::new().unwrap();
+    let working_dir = working_dir.path();
+
+    let patch_crate_name = "anyhow";
+    let renamed_patch_crate_name = "anyhow-main";
+
+    let package_name = "package_name";
+    let manifest_header = Header::basic(package_name);
+    let manifest = Manifest::new(manifest_header)
+        .add_target(Target::bin(package_name, "src/main.rs"))
+        .add_dependency(Dependency::new(patch_crate_name, "0.1.0"))
+        .add_patch(
+            "crates-io",
+            Patch::new_renamed(
+                renamed_patch_crate_name,
+                patch_crate_name,
+                PatchType::Local(LocalPatch::new("../anyhow")),
+            ),
+        )
+        .render();
+
+    let working_dir_manifest_path = create_cargo_manifest(working_dir, &manifest);
+
+    let mut command = rm_override(renamed_patch_crate_name, working_dir, |command| command);
+
+    let assert = command.assert();
+
+    let output = assert.get_output();
+
+    let stdout = String::from_utf8(output.stdout.clone()).unwrap();
+    let stderr = String::from_utf8(output.stderr.clone()).unwrap();
+
+    assert.success();
+
+    insta::assert_snapshot!(stdout, @"");
+    insta::assert_snapshot!(stderr,  @r###"
+    Removed package patch "anyhow-main"
+    "###);
+
+    let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
+
+    insta::assert_toml_snapshot!(manifest, @r###"
+    '''
+    [package]
+    name = "package_name"
+    version = "0.1.0"
+    edition = "2021"
+
+    # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+    [dependencies]
+    anyhow = "0.1.0"
+
+    [[bin]]
+    name = "package_name"
+    path = "src/main.rs"
+    '''
+    "###);
+}
+
 fn write_cargo_config(path: &Path, toml: &str) {
     let cargo_config_dir = path.join(".cargo");
 
@@ -1331,6 +1509,25 @@ fn override_path(
             .arg("override")
             .arg("--path")
             .arg(path),
+    )
+    .env("CARGO_HOME", working_dir)
+    .env_remove("RUST_BACKTRACE");
+
+    cmd
+}
+
+fn rm_override(
+    package: &str,
+    working_dir: &Path,
+    args: impl Fn(&mut Command) -> &mut Command,
+) -> Command {
+    let mut cmd = Command::cargo_bin("cargo-override").unwrap();
+
+    args(
+        cmd.current_dir(working_dir)
+            .arg("rm-override")
+            .arg("--package")
+            .arg(package),
     )
     .env("CARGO_HOME", working_dir)
     .env_remove("RUST_BACKTRACE");
