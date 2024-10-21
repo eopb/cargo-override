@@ -20,15 +20,15 @@ repository = "https://github.com/eopb/cargo-override"
 failing_tests = []
 
 [dependencies]
-anyhow = "1.0.89"
+anyhow = "1.0.90"
 camino = "1.1.9"
-cargo = "0.82.0"
+cargo = "0.83.0"
 cargo_metadata = "0.18"
-cargo-util-schemas = "0.5.0"
-clap = { version = "4.5.18", features = ["derive"] }
+cargo-util-schemas = "0.6.0"
+clap = { version = "4.5.20", features = ["derive"] }
 fs-err = "2.11.0"
 home = "0.5.9"
-pathdiff = "0.2.1"
+pathdiff = "0.2.2"
 semver = "1.0.23"
 serde = { version = "1.0.210", features = ["derive"] }
 toml_edit = "0.22.22"
@@ -42,7 +42,7 @@ fake = "2.10.0"
 googletest = "0.12.0"
 hex = "0.4.3"
 insta = { version = "1.40.0", features = ["filters", "toml"] }
-serde_json = "1.0.128"
+serde_json = "1.0.132"
 sha2 = "0.10.8"
 strip-ansi-escapes = "0.2.0"
 tempfile = "3.13.0"
