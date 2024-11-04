@@ -18,10 +18,10 @@ jobs:
 
     name: flake check
     steps:
-      - uses: actions/checkout@v4.2.0
+      - uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
-      - uses: DeterminateSystems/nix-installer-action@v14
+      - uses: DeterminateSystems/nix-installer-action@v15
       - uses: DeterminateSystems/magic-nix-cache-action@v8
       - run: nix flake check -L --show-trace
   fmt:
@@ -29,9 +29,9 @@ jobs:
 
     name: nix fmt
     steps:
-      - uses: actions/checkout@v4.2.0
+      - uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
-      - uses: DeterminateSystems/nix-installer-action@v14
+      - uses: DeterminateSystems/nix-installer-action@v15
       - uses: DeterminateSystems/magic-nix-cache-action@v8
       - run: nix run nixpkgs#nixfmt-rfc-style -- --check flake.nix
