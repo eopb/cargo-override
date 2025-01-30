@@ -33,7 +33,7 @@ semver = "1.0.23"
 serde = { version = "1.0.210", features = ["derive"] }
 toml_edit = "0.22.22"
 url = "2.5.2"
-winnow = "0.6.20"
+winnow = "0.6.26"
 clap-cargo = "0.14.1"
 
 [dev-dependencies]
