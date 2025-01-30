@@ -900,16 +900,16 @@ fn missing_manifest() {
         (&patch_folder, "[PATCH]"),
     ]}, {
         insta::assert_snapshot!(stdout, @"");
-        insta::assert_snapshot!(stderr, @r###"
+        insta::assert_snapshot!(stderr, @r#"
         error: Unable to run `cargo metadata`
 
         Caused by:
             `cargo metadata` exited with an error: error: failed to parse manifest at `[TEMPDIR]Cargo.toml`
             
             Caused by:
-              virtual manifests must be configured with [workspace]
+              manifest is missing either a `[package]` or a `[workspace]`
             
-        "###);
+        "#);
     });
 }
 
