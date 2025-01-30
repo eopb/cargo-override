@@ -2,7 +2,7 @@ use std::{collections::HashMap, env, ffi::OsString, io, path::PathBuf};
 
 use anyhow::Context;
 use cargo::{core::shell::Shell, util::context::GlobalContext};
-use winnow::{token::take_until, PResult, Parser};
+use winnow::{token::take_until, Parser};
 
 pub fn get_registry_name_from_url(
     working_dir: PathBuf,
@@ -74,7 +74,7 @@ fn get_registry_from_env(
     None
 }
 
-fn registry_key(input: &str) -> PResult<&str> {
+fn registry_key(input: &str) -> winnow::Result<&str> {
     // Format CARGO_REGISTRIES_{REGISTRY_NAME}_INDEX
     let (_, (_, registry)) = ("CARGO_REGISTRIES_", take_until(0.., "_INDEX")).parse_peek(input)?;
 
