@@ -20,12 +20,9 @@ pub fn get_registry_name_from_url(
         .context("failed to get [env] config")?;
 
     if let Some(registry) = get_registry_from_env(
-        config_env.iter().map(|(key, value)| {
-            (
-                OsString::from(key),
-                value.resolve(&global_context).into_owned(),
-            )
-        }),
+        config_env
+            .iter()
+            .map(|(key, value)| (OsString::from(key), value.clone())),
         registry_url,
     ) {
         return Ok(Some(registry));
