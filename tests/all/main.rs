@@ -893,8 +893,8 @@ fn missing_manifest() {
     assert.failure();
 
     insta::with_settings!({filters => vec![
-        (r"\/tmp\/\.tmp.*\/", "[TEMPDIR]"),
-        (r"\/private\/var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
+        (r"\/tmp\/\.tmp[0-9a-zA-Z]*\/?", "[TEMPDIR]"),
+        (r"\/private\/var\/.*\/\.tmp[0-9a-zA-Z]*\/?", "[TEMPDIR]"),
         (r"\/var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
         (r"C\:\\Users\\.*\\Temp\\\.tmp[0-9a-zA-Z]*", "[TEMPDIR]"),
     ]}, {
@@ -935,15 +935,15 @@ fn patch_path_doesnt_exist() {
     assert.failure();
 
     insta::with_settings!({filters => vec![
-        (r".*\.", "[OS_ERROR]"),
+        (r"(No such file or directory)?(The directory name is invalid\.)? \(os error .*\)", "[OSERROR]"),
     ]}, {
         insta::assert_snapshot!(stdout, @"");
         insta::assert_snapshot!(stderr, @r#"
         error: Unable to run `cargo metadata`
 
         Caused by:
-            0: failed to start `cargo metadata`: [OS_ERROR] (os error 267)
-            1: [OS_ERROR] (os error 267)
+            0: failed to start `cargo metadata`: [OSERROR]
+            1: [OSERROR]
         "#);
     });
 }
@@ -979,16 +979,16 @@ fn patch_manifest_doesnt_exist() {
     assert.failure();
 
     insta::with_settings!({filters => vec![
-        (r"\/tmp\/\.tmp.*\/", "[TEMPDIR]"),
-        (r"\/private\/var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
+        (r"\/tmp\/\.tmp[0-9a-zA-Z]*\/?", "[TEMPDIR]"),
+        (r"\/private\/var\/.*\/\.tmp[0-9a-zA-Z]*\/?", "[TEMPDIR]"),
         (r"\/var\/.*\/\.tmp.*\/", "[TEMPDIR]"),
-        (r"C\:\/Users\/.*\/Temp\/\.tmp[0-9a-zA-Z]*", "[TEMPDIR]"),
+        (r"\/C\:\/Users\/.*\/Temp\/\.tmp[0-9a-zA-Z]*", "[TEMPDIR]"),
     ]}, {
         insta::assert_snapshot!(stdout, @"");
-        insta::assert_snapshot!(stderr, @r###"
-        error: unable to determine registry name for `file:///[TEMPDIR]`
+        insta::assert_snapshot!(stderr, @r#"
+        error: unable to determine registry name for `file://[TEMPDIR]`
                          provide it using the `--registry` flag
-        "###);
+        "#);
     });
 }
 
