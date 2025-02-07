@@ -22,7 +22,7 @@ jobs:
         with:
           fetch-depth: 0
       - uses: DeterminateSystems/nix-installer-action@v16
-      - uses: DeterminateSystems/magic-nix-cache-action@v9
+      - uses: DeterminateSystems/flakehub-cache-action@v1
       - run: nix flake check -L --show-trace
   fmt:
     runs-on: ubuntu-latest
@@ -33,5 +33,5 @@ jobs:
         with:
           fetch-depth: 0
       - uses: DeterminateSystems/nix-installer-action@v16
-      - uses: DeterminateSystems/magic-nix-cache-action@v9
+      - uses: DeterminateSystems/flakehub-cache-action@v1
       - run: nix run nixpkgs#nixfmt-rfc-style -- --check flake.nix
