@@ -46,41 +46,41 @@ pub enum Mode {
     Git { url: Url, reference: GitReference },
 }
 
-#[derive(Default)]
 pub struct ContextBuilder {
     cargo: Cargo,
     registry_hint: Option<String>,
     manifest_path: Option<Utf8PathBuf>,
-    operation: Option<Operation>,
+    operation: Operation,
     force: bool,
 }
 
 impl ContextBuilder {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(operation: Operation) -> Self {
+        Self {
+            cargo: Cargo::default(),
+            registry_hint: None,
+            manifest_path: None,
+            operation,
+            force: false,
+        }
     }
 
-    pub fn cargo(&mut self, cargo: Cargo) -> &mut Self {
+    pub fn cargo(mut self, cargo: Cargo) -> Self {
         self.cargo = cargo;
         self
     }
 
-    pub fn registry_hint(&mut self, registry_hint: Option<String>) -> &mut Self {
+    pub fn registry_hint(mut self, registry_hint: Option<String>) -> Self {
         self.registry_hint = registry_hint;
         self
     }
 
-    pub fn manifest_path(&mut self, manifest_path: Option<Utf8PathBuf>) -> &mut Self {
+    pub fn manifest_path(mut self, manifest_path: Option<Utf8PathBuf>) -> Self {
         self.manifest_path = manifest_path;
         self
     }
 
-    pub fn operation(&mut self, operation: Operation) -> &mut Self {
-        self.operation = Some(operation);
-        self
-    }
-
-    pub fn force(&mut self, force: bool) -> &mut Self {
+    pub fn force(mut self, force: bool) -> Self {
         self.force = force;
         self
     }
@@ -95,7 +95,7 @@ impl ContextBuilder {
             manifest_path,
             manifest_dir,
             working_dir,
-            operation: self.operation.expect("operation must be set"),
+            operation: self.operation,
             force: self.force,
         })
     }
@@ -116,14 +116,6 @@ impl TryFrom<cli::Cli> for ContextBuilder {
                 git: cli::Git { branch, tag, rev },
                 force,
             }) => {
-                let mut context = ContextBuilder::new();
-
-                context
-                    .registry_hint(registry)
-                    .manifest_path(manifest_path)
-                    .force(force)
-                    .cargo(Cargo::new(locked, offline, frozen));
-
                 let mode = match (git, path) {
                     (Some(git), None) => Mode::Git {
                         url: git,
@@ -146,7 +138,11 @@ impl TryFrom<cli::Cli> for ContextBuilder {
                     }
                 };
 
-                context.operation(Operation::Override { mode });
+                let context = ContextBuilder::new(Operation::Override { mode })
+                    .registry_hint(registry)
+                    .manifest_path(manifest_path)
+                    .force(force)
+                    .cargo(Cargo::new(locked, offline, frozen));
 
                 Ok(context)
             }
@@ -155,12 +151,9 @@ impl TryFrom<cli::Cli> for ContextBuilder {
                 manifest_path,
                 locked,
             }) => {
-                let mut context = ContextBuilder::new();
-
-                context
+                let context = ContextBuilder::new(Operation::Remove { name: package })
                     .manifest_path(manifest_path)
-                    .cargo(Cargo::new(locked, false, false))
-                    .operation(Operation::Remove { name: package });
+                    .cargo(Cargo::new(locked, false, false));
 
                 Ok(context)
             }
