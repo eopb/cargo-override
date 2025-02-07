@@ -6,6 +6,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6](https://github.com/eopb/cargo-override/compare/v0.0.5...v0.0.6) - 2025-02-07
+
+### Fixed
+
+- *(ci)* update snapshots for new rust version
+
+### Other
+
+- bump the cargo-dependencies group across 1 directory with 20 updates
+- comment out minimal
+- `nix flake update`
+- bump MSRV to `1.82`
+- bump the github-dependencies group across 1 directory with 7 updates
+- Upgrade to Winnow 0.7 (#183)
+- bump the cargo-dependencies group with 4 updates (#157)
+- bump the github-dependencies group with 3 updates (#156)
+- Add clippy to CI (#154)
+- bump the github-dependencies group with 2 updates (#153)
+- bump the cargo-dependencies group with 2 updates (#152)
+- bump anyhow from 1.0.88 to 1.0.89 in the cargo-dependencies group (#150)
+- bump the github-dependencies group with 2 updates (#149)
+
 ## [0.0.5](https://github.com/eopb/cargo-override/compare/v0.0.4...v0.0.5) - 2024-09-14
 
 ### Added
