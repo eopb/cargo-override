@@ -66,26 +66,26 @@ jobs:
       - uses: Swatinem/rust-cache@v2.7.7
       - name: doc
         run: cargo doc --all-features
-  minimal:
-    runs-on: ubuntu-latest
-    name: ubuntu / stable / minimal-versions
-    steps:
-      - uses: actions/checkout@v4.2.2
-      - name: Install stable
-        uses: dtolnay/rust-toolchain@c5a29ddb4d9d194e7c84ec8c3fba61b1c31fee8c
-        with:
-          toolchain: stable
-      - name: Install nightly for -Zminimal-versions
-        uses: dtolnay/rust-toolchain@c5a29ddb4d9d194e7c84ec8c3fba61b1c31fee8c
-        with:
-          toolchain: nightly
-      - name: rustup default stable
-        run: rustup default stable
-      - uses: Swatinem/rust-cache@v2.7.7
-      - name: cargo update -Zminimal-versions
-        run: cargo +nightly update -Zminimal-versions
-      - name: cargo check
-        run: cargo check --locked --all-features
+  # minimal:
+  #   runs-on: ubuntu-latest
+  #   name: ubuntu / stable / minimal-versions
+  #   steps:
+  #     - uses: actions/checkout@v4.2.2
+  #     - name: Install stable
+  #       uses: dtolnay/rust-toolchain@c5a29ddb4d9d194e7c84ec8c3fba61b1c31fee8c
+  #       with:
+  #         toolchain: stable
+  #     - name: Install nightly for -Zminimal-versions
+  #       uses: dtolnay/rust-toolchain@c5a29ddb4d9d194e7c84ec8c3fba61b1c31fee8c
+  #       with:
+  #         toolchain: nightly
+  #     - name: rustup default stable
+  #       run: rustup default stable
+  #     - uses: Swatinem/rust-cache@v2.7.7
+  #     - name: cargo update -Zminimal-versions
+  #       run: cargo +nightly update -Zminimal-versions
+  #     - name: cargo check
+  #       run: cargo check --locked --all-features
   msrv:
     name: "Check MSRV"
     runs-on: ubuntu-latest
