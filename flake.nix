@@ -103,6 +103,7 @@
               # Additional tools recommended by contributing.md
               cargo-insta
               cargo-nextest
+              cargo-msrv
               nil
             ]
             ++ darwinDeps;
