@@ -90,8 +90,8 @@ fn rm_override_subcommand_help_message() {
 
             let output = strip_ansi_escapes::strip_str(format!("{}", output.render().ansi()));
 
-            insta::assert_snapshot!(output, @r###"
-            Remove an override from the `[patch]` section of `Cargo.toml`s for a package
+            insta::assert_snapshot!(output, @r#"
+            Remove an existing override from the `[patch]` section of a `Cargo.toml`
 
             Usage: cargo rm-override [OPTIONS] --package <PACKAGE>
 
@@ -106,7 +106,7 @@ fn rm_override_subcommand_help_message() {
                       Print help
               -V, --version
                       Print version
-            "###);
+            "#);
         }
     }
 }
@@ -121,20 +121,20 @@ fn base_help_message() {
 
             let output = strip_ansi_escapes::strip_str(format!("{}", output.render().ansi()));
 
-            insta::assert_snapshot!(output, @r###"
+            insta::assert_snapshot!(output, @r#"
             Quickly override dependencies using the `[patch]` section of `Cargo.toml`s.
 
             Usage: cargo <COMMAND>
 
             Commands:
               override     Quickly override dependencies using the `[patch]` section of `Cargo.toml`s.
-              rm-override  Remove an override from the `[patch]` section of `Cargo.toml`s for a package
+              rm-override  Remove an existing override from the `[patch]` section of a `Cargo.toml`
               help         Print this message or the help of the given subcommand(s)
 
             Options:
               -h, --help     Print help
               -V, --version  Print version
-            "###);
+            "#);
         }
     }
 }

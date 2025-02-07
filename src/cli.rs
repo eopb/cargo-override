@@ -18,7 +18,7 @@ pub enum CargoInvocation {
     #[command(next_line_help = true)]
     Override(Override),
 
-    /// Remove an override from the `[patch]` section of `Cargo.toml`s for a package.
+    /// Remove an existing override from the `[patch]` section of a `Cargo.toml`.
     #[command(name = "rm-override")]
     #[command(next_line_help = true)]
     RmOverride(RmOverride),
