@@ -262,7 +262,7 @@ impl Patches {
     fn add(&mut self, registry: &str, patch: Patch) {
         self.patches
             .entry(registry.to_owned())
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(patch);
     }
 
