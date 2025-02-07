@@ -106,7 +106,7 @@ fn as_repo_url(url: &Url) -> String {
 fn is_git_url(url: &Url) -> bool {
     url.scheme()
         .split_once('+')
-        .map_or(false, |(scheme, _)| scheme == "git")
+        .is_some_and(|(scheme, _)| scheme == "git")
 }
 
 pub fn resolved_dependencies(
