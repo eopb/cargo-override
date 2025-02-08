@@ -70,6 +70,7 @@
               "--skip=missing_manifest"
               "--skip=patch_absolute_path"
               "--skip=patch_manifest_doesnt_exist"
+              "--skip=sub_dependency_is_of_source_git::_https_github_com_dtolnay_anyhow_expect"
             ];
 
           };
