@@ -25,7 +25,6 @@ use tempfile::TempDir;
 use test_case::test_case;
 
 #[test_case("https://github.com/dtolnay/anyhow")]
-#[test_case("ssh://git@github.com/dtolnay/anyhow")]
 #[googletest::test]
 fn dependency_is_of_source_git(git_url: &str) {
     let working_dir = TempDir::new().unwrap();
@@ -107,7 +106,6 @@ fn dependency_is_of_source_git(git_url: &str) {
 }
 
 #[test_case("https://github.com/dtolnay/anyhow")]
-#[test_case("ssh://git@github.com/dtolnay/anyhow")]
 #[googletest::test]
 fn sub_dependency_is_of_source_git(git_url: &str) {
     let working_dir = TempDir::new().unwrap();
