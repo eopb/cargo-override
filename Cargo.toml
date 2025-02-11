@@ -31,9 +31,9 @@ home = "0.5.11"
 pathdiff = "0.2.3"
 semver = "1.0.25"
 serde = { version = "1.0.217", features = ["derive"] }
-toml_edit = "0.22.23"
+toml_edit = "0.22.24"
 url = "2.5.4"
-winnow = "0.7.1"
+winnow = "0.7.2"
 clap-cargo = "0.15.2"
 
 [dev-dependencies]
