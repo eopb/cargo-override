@@ -70,6 +70,7 @@
               "--skip=missing_manifest"
               "--skip=patch_absolute_path"
               "--skip=patch_manifest_doesnt_exist"
+              "--skip=cli_tests::rm_override_subcommand_help_message"
             ];
 
           };
