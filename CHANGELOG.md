@@ -6,6 +6,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6](https://github.com/eopb/cargo-override/compare/v0.0.5...v0.0.6) - 2025-03-14
+
+### Fixed
+
+- *(ci)* update snapshots for new rust version
+
+### Other
+
+- bump the cargo-dependencies group across 1 directory with 11 updates
+- reduce dependabot interval from `weekly` to `monthly`
+- bump the github-dependencies group across 1 directory with 2 updates
+- *(nix)* remove problematic test from nix tests
+- bump the github-dependencies group with 2 updates
+- bump the cargo-dependencies group with 2 updates
+- Implement rm-override ([#133](https://github.com/eopb/cargo-override/pull/133))
+- bump the github-dependencies group with 2 updates
+- move away from deprecated `magic-nix-cache-action`
+- add `cargo-msrv` to shell
+- bump the cargo-dependencies group across 1 directory with 20 updates
+- comment out minimal
+- `nix flake update`
+- bump MSRV to `1.82`
+- bump the github-dependencies group across 1 directory with 7 updates
+- Upgrade to Winnow 0.7 ([#183](https://github.com/eopb/cargo-override/pull/183))
+- bump the cargo-dependencies group with 4 updates ([#157](https://github.com/eopb/cargo-override/pull/157))
+- bump the github-dependencies group with 3 updates ([#156](https://github.com/eopb/cargo-override/pull/156))
+- Add clippy to CI ([#154](https://github.com/eopb/cargo-override/pull/154))
+- bump the github-dependencies group with 2 updates ([#153](https://github.com/eopb/cargo-override/pull/153))
+- bump the cargo-dependencies group with 2 updates ([#152](https://github.com/eopb/cargo-override/pull/152))
+- bump anyhow from 1.0.88 to 1.0.89 in the cargo-dependencies group ([#150](https://github.com/eopb/cargo-override/pull/150))
+- bump the github-dependencies group with 2 updates ([#149](https://github.com/eopb/cargo-override/pull/149))
+
 ## [0.0.5](https://github.com/eopb/cargo-override/compare/v0.0.4...v0.0.5) - 2024-09-14
 
 ### Added
