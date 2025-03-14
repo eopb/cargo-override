@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6](https://github.com/eopb/cargo-override/compare/v0.0.5...v0.0.6) - 2025-03-14
+
+### Added
+
+- Added new command 'cargo rm-override' for removing overrides ([#133](https://github.com/eopb/cargo-override/pull/133))
+
+### Other
+
+- Bumped dependencies
+
 ## [0.0.5](https://github.com/eopb/cargo-override/compare/v0.0.4...v0.0.5) - 2024-09-14
 
 ### Added
