@@ -7,7 +7,7 @@ use std::{env, path::Path};
 
 use assert_cmd::Command;
 use fs_err as fs;
-use googletest::{expect_eq, verify_eq, verify_that};
+use googletest::expect_eq;
 use tempfile::TempDir;
 
 #[googletest::test]

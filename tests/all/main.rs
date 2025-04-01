@@ -20,7 +20,7 @@ use cargo_override::CARGO_TOML;
 use assert_cmd::Command;
 use fake::{Fake, Faker};
 use fs_err as fs;
-use googletest::{expect_eq, verify_eq, verify_that};
+use googletest::expect_eq;
 use tempfile::TempDir;
 use test_case::test_case;
 
