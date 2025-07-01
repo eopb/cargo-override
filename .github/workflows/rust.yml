@@ -20,10 +20,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4.2.2
-      - uses: taiki-e/install-action@v2.49.43
+      - uses: taiki-e/install-action@v2.56.0
         with:
           tool: cargo-hack
-      - uses: Swatinem/rust-cache@v2.7.8
+      - uses: Swatinem/rust-cache@v2.8.0
       - name: build
         run: cargo hack build --feature-powerset
   test:
@@ -34,10 +34,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4.2.2
-      - uses: taiki-e/install-action@v2.49.43
+      - uses: taiki-e/install-action@v2.56.0
         with:
           tool: cargo-hack
-      - uses: Swatinem/rust-cache@v2.7.8
+      - uses: Swatinem/rust-cache@v2.8.0
       - name: test
         run: cargo hack test --feature-powerset --exclude-features failing_tests
   clippy:
@@ -45,25 +45,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4.2.2
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@56f84321dbccf38fb67ce29ab63e4754056677e0
+        uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
         with:
           toolchain: stable
           components: clippy
-      - uses: Swatinem/rust-cache@v2.7.8
+      - uses: Swatinem/rust-cache@v2.8.0
       - name: clippy
         run: cargo clippy --all-features --all-targets --no-deps
   fmt:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.2.2
-      - uses: Swatinem/rust-cache@v2.7.8
+      - uses: Swatinem/rust-cache@v2.8.0
       - name: fmt
         run: cargo fmt --check
   doc:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.2.2
-      - uses: Swatinem/rust-cache@v2.7.8
+      - uses: Swatinem/rust-cache@v2.8.0
       - name: doc
         run: cargo doc --all-features
   # minimal:
@@ -72,16 +72,16 @@ jobs:
   #   steps:
   #     - uses: actions/checkout@v4.2.2
   #     - name: Install stable
-  #       uses: dtolnay/rust-toolchain@56f84321dbccf38fb67ce29ab63e4754056677e0
+  #       uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
   #       with:
   #         toolchain: stable
   #     - name: Install nightly for -Zminimal-versions
-  #       uses: dtolnay/rust-toolchain@56f84321dbccf38fb67ce29ab63e4754056677e0
+  #       uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
   #       with:
   #         toolchain: nightly
   #     - name: rustup default stable
   #       run: rustup default stable
-  #     - uses: Swatinem/rust-cache@v2.7.8
+  #     - uses: Swatinem/rust-cache@v2.8.0
   #     - name: cargo update -Zminimal-versions
   #       run: cargo +nightly update -Zminimal-versions
   #     - name: cargo check
@@ -93,11 +93,11 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4.2.2
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@56f84321dbccf38fb67ce29ab63e4754056677e0
+      uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
       with:
         toolchain: stable
-    - uses: Swatinem/rust-cache@v2.7.8
-    - uses: taiki-e/install-action@v2.49.43
+    - uses: Swatinem/rust-cache@v2.8.0
+    - uses: taiki-e/install-action@v2.56.0
       with:
         tool: cargo-hack
     - name: Default features
@@ -108,9 +108,9 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4.2.2
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@56f84321dbccf38fb67ce29ab63e4754056677e0
+      uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
       with:
         toolchain: stable
-    - uses: Swatinem/rust-cache@v2.7.8
+    - uses: Swatinem/rust-cache@v2.8.0
     - name: "Is lockfile updated?"
       run: cargo update --workspace --locked
