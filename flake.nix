@@ -28,7 +28,6 @@
         darwinDeps =
           with pkgs;
           lib.optionals stdenv.isDarwin [
-            darwin.apple_sdk.frameworks.Foundation
             libiconv
           ];
 
