@@ -2,7 +2,7 @@
 name = "cargo-override"
 version = "0.0.6"
 edition = "2021"
-rust-version = "1.83"
+rust-version = "1.86"
 license = "Apache-2.0 OR MIT"
 description = """
 Quickly override dependencies using the `[patch]` section of `Cargo.toml`s.
@@ -20,32 +20,32 @@ repository = "https://github.com/eopb/cargo-override"
 failing_tests = []
 
 [dependencies]
-anyhow = "1.0.97"
-camino = "1.1.9"
+anyhow = "1.0.99"
+camino = "1.1.12"
 cargo = "0.86.0"
-cargo_metadata = "0.19"
+cargo_metadata = "0.20"
 cargo-util-schemas = "0.7.2"
-clap = { version = "4.5.35", features = ["derive"] }
-fs-err = "3.1.0"
+clap = { version = "4.5.47", features = ["derive"] }
+fs-err = "3.1.1"
 home = "0.5.11"
 pathdiff = "0.2.3"
 semver = "1.0.26"
 serde = { version = "1.0.219", features = ["derive"] }
-toml_edit = "0.22.24"
+toml_edit = "0.23.4"
 url = "2.5.4"
 winnow = "0.7.4"
-clap-cargo = "0.15.2"
+clap-cargo = "0.17.1"
 
 [dev-dependencies]
-assert_cmd = "2.0.16"
-fake = "4.2.0"
-googletest = "0.14.0"
+assert_cmd = "2.0.17"
+fake = "4.4.0"
+googletest = "0.14.2"
 hex = "0.4.3"
 insta = { version = "1.41.1", features = ["filters", "toml"] }
-serde_json = "1.0.140"
-sha2 = "0.10.8"
+serde_json = "1.0.143"
+sha2 = "0.10.9"
 strip-ansi-escapes = "0.2.1"
-tempfile = "3.19.1"
+tempfile = "3.22.0"
 test-case = "3.3.1"
 
 # Faster snapshotting https://insta.rs/docs/quickstart/#optional-faster-runs

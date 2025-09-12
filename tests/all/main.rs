@@ -150,7 +150,10 @@ fn patch_transitive_on_registry() {
 
 #[googletest::test]
 fn patch_transitive() {
-    let working_dir = tempfile::Builder::new().keep(true).tempdir().unwrap();
+    let working_dir = tempfile::Builder::new()
+        .disable_cleanup(true)
+        .tempdir()
+        .unwrap();
     let working_dir = working_dir.path();
 
     let patch_crate_name = "anyhow";
@@ -1019,7 +1022,7 @@ fn basic_cargo_env_config(path: &Path) {
 fn patch_exists_alt_registry(setup: impl Fn(&Path)) {
     // let working_dir = TempDir::new().unwrap();
     let mut working_dir = tempfile::Builder::new();
-    let working_dir = working_dir.keep(true).tempdir().unwrap();
+    let working_dir = working_dir.disable_cleanup(true).tempdir().unwrap();
     let working_dir = working_dir.path();
 
     setup(working_dir);
@@ -1094,7 +1097,7 @@ fn patch_exists_alt_registry(setup: impl Fn(&Path)) {
 #[googletest::test]
 fn patch_registry_mismatch_fails(setup: impl Fn(&Path)) {
     let mut working_dir = tempfile::Builder::new();
-    let working_dir = working_dir.keep(true).tempdir().unwrap();
+    let working_dir = working_dir.disable_cleanup(true).tempdir().unwrap();
     let working_dir = working_dir.path();
 
     setup(working_dir);
@@ -1157,7 +1160,7 @@ fn patch_registry_mismatch_fails(setup: impl Fn(&Path)) {
 #[googletest::test]
 fn patch_registry_mismatch_force_succeeds(setup: impl Fn(&Path)) {
     let mut working_dir = tempfile::Builder::new();
-    let working_dir = working_dir.keep(true).tempdir().unwrap();
+    let working_dir = working_dir.disable_cleanup(true).tempdir().unwrap();
     let working_dir = working_dir.path();
 
     setup(working_dir);
