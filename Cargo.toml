@@ -2,7 +2,7 @@
 name = "cargo-override"
 version = "0.0.6"
 edition = "2024"
-rust-version = "1.86"
+rust-version = "1.87"
 license = "Apache-2.0 OR MIT"
 description = """
 Quickly override dependencies using the `[patch]` section of `Cargo.toml`s.
@@ -22,9 +22,9 @@ failing_tests = []
 [dependencies]
 anyhow = "1.0.99"
 camino = "1.1.12"
-cargo = "0.86.0"
-cargo_metadata = "0.20"
-cargo-util-schemas = "0.7.2"
+cargo = "0.90.0"
+cargo_metadata = "0.22"
+cargo-util-schemas = "0.9.0"
 clap = { version = "4.5.47", features = ["derive"] }
 fs-err = "3.1.1"
 home = "0.5.11"
