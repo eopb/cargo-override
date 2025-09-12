@@ -68,7 +68,7 @@ impl Header {
         Self {
             name: Some(name.as_ref().to_owned()),
             version: Some("0.1.0".to_owned()),
-            edition: Some("2021".to_owned()),
+            edition: Some("2024".to_owned()),
             default_comment: true,
         }
     }
@@ -396,12 +396,12 @@ fn manifest_with_deps() {
         .add_dependency(Dependency::new("redact", "0.1.10"))
         .render();
 
-    insta::assert_toml_snapshot!(manifest, @r###"
+    insta::assert_toml_snapshot!(manifest, @r#"
     '''
     [package]
     name = "package-name"
     version = "0.1.0"
-    edition = "2021"
+    edition = "2024"
 
     # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -409,7 +409,7 @@ fn manifest_with_deps() {
     rand = "0.8"
     redact = "0.1.10"
     '''
-    "###);
+    "#);
 }
 
 #[test]
@@ -418,17 +418,17 @@ fn basic_manifest() {
 
     let manifest = Manifest::new(header).render();
 
-    insta::assert_toml_snapshot!(manifest, @r###"
+    insta::assert_toml_snapshot!(manifest, @r#"
     '''
     [package]
     name = "package-name"
     version = "0.1.0"
-    edition = "2021"
+    edition = "2024"
 
     # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
     '''
-    "###);
+    "#);
 }
 
 #[test]
@@ -469,12 +469,12 @@ fn manifest_with_patches() {
         )
         .render();
 
-    insta::assert_toml_snapshot!(manifest, @r###"
+    insta::assert_toml_snapshot!(manifest, @r#"
     '''
     [package]
     name = "package-name"
     version = "0.1.0"
-    edition = "2021"
+    edition = "2024"
 
     # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -483,5 +483,5 @@ fn manifest_with_patches() {
     test2 = { package = "test", git = "https://github.com/test/test2.git", branch = "main", rev = "324hb34" }
     test3 = { package = "test", path = "/path/to/local/crate/test3" }
     '''
-    "###);
+    "#);
 }

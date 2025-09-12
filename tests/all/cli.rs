@@ -7,7 +7,7 @@ use googletest::{
     matchers::{eq, matches_pattern, ok, some},
 };
 
-use cargo_override::{cli, CargoInvocation, Cli};
+use cargo_override::{CargoInvocation, Cli, cli};
 
 #[googletest::test]
 fn path_parse_from_args() {

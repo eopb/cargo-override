@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::{cli, metadata, CARGO_TOML};
+use crate::{CARGO_TOML, cli, metadata};
 
 use anyhow::bail;
 use camino::Utf8PathBuf;
@@ -125,7 +125,9 @@ impl TryFrom<cli::Cli> for ContextBuilder {
                                 (Some(branch), None, None) => GitReference::Branch(branch),
                                 (None, Some(tag), None) => GitReference::Tag(tag),
                                 (None, None, Some(rev)) => GitReference::Rev(rev),
-                                _ => bail!("multiple git identifiers used. Only use one of `--branch`, `--tag` or `--rev`")
+                                _ => bail!(
+                                    "multiple git identifiers used. Only use one of `--branch`, `--tag` or `--rev`"
+                                ),
                             }
                         },
                     },

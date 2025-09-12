@@ -2,7 +2,7 @@ use crate::context;
 
 use std::{ops::Not, path::PathBuf};
 
-use anyhow::{bail, Context as _};
+use anyhow::{Context as _, bail};
 use cargo::core::PackageIdSpec;
 use semver::{Version, VersionReq};
 

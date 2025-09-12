@@ -3,9 +3,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use cargo::{
-    core::{shell::Shell, GitReference, SourceId},
+    core::{GitReference, SourceId, shell::Shell},
     sources::git::GitSource,
     util::{cache_lock::CacheLockMode, context::GlobalContext},
 };
