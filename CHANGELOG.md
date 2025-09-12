@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.7](https://github.com/eopb/cargo-override/compare/v0.0.6...v0.0.7) - 2025-09-12
+
+### Fixed
+
+- Remove reference to deprecated `darwin.apple_sdk_11_0` on nix MacOS builds
+
+### Other
+
+- upgrade dependencies
+- bump to edition 2024
+
 ## [0.0.6](https://github.com/eopb/cargo-override/compare/v0.0.5...v0.0.6) - 2025-03-14
 
 ### Added
