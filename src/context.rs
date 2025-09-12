@@ -85,7 +85,7 @@ impl ContextBuilder {
         self
     }
 
-    pub fn build(self, working_dir: &Path) -> anyhow::Result<Context> {
+    pub fn build(self, working_dir: &Path) -> anyhow::Result<Context<'_>> {
         let (manifest_dir, manifest_path) =
             compute_manifest_paths(working_dir, self.cargo, self.manifest_path)?;
 
