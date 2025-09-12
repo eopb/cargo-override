@@ -1,6 +1,6 @@
 use std::{env::current_dir, process};
 
-use cargo_override::{run, Cli};
+use cargo_override::{Cli, run};
 
 use clap::Parser;
 

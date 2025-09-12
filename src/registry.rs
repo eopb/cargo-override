@@ -2,7 +2,7 @@ use std::{collections::HashMap, env, ffi::OsString, io, path::PathBuf};
 
 use anyhow::Context;
 use cargo::{core::shell::Shell, util::context::GlobalContext};
-use winnow::{token::take_until, Parser};
+use winnow::{Parser, token::take_until};
 
 pub fn get_registry_name_from_url(
     working_dir: PathBuf,

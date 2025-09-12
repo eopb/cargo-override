@@ -12,7 +12,7 @@ use context::ContextBuilder;
 
 use std::path::Path;
 
-use anyhow::{bail, ensure, Context as _};
+use anyhow::{Context as _, bail, ensure};
 
 pub static DEFAULT_REGISTRY: &str = "crates-io";
 pub static DEFAULT_REGISTRY_URL: &str = "https://github.com/rust-lang/crates.io-index";
@@ -44,7 +44,7 @@ fn add_override(
     };
 
     let path = match &mode {
-        context::Mode::Path(ref path) => working_dir.join(path),
+        context::Mode::Path(path) => working_dir.join(path),
         context::Mode::Git { url, reference } => {
             git::get_source(working_dir, url, reference.clone())?
         }

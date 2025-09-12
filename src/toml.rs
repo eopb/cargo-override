@@ -5,7 +5,7 @@ use std::{
     path::{self, Path, PathBuf},
 };
 
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use cargo_util_schemas::core::GitReference;
 use fs_err as fs;
 use pathdiff::diff_paths;
@@ -222,7 +222,7 @@ mod test {
     const TEST_MANIFEST: &str = r###"[package]
 name = "package-name"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -259,7 +259,7 @@ custom-package = { path = "../path/to/crate" }
         [package]
         name = "package-name"
         version = "0.1.0"
-        edition = "2021"
+        edition = "2024"
 
         # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -294,7 +294,7 @@ custom-package = { path = "../path/to/crate" }
         [package]
         name = "package-name"
         version = "0.1.0"
-        edition = "2021"
+        edition = "2024"
 
         # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
         
@@ -321,7 +321,7 @@ custom-package = { path = "../path/to/crate" }
         [package]
         name = "package-name"
         version = "0.1.0"
-        edition = "2021"
+        edition = "2024"
 
         # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
         
@@ -354,7 +354,7 @@ custom-package = { path = "../path/to/crate" }
         [package]
         name = "package-name"
         version = "0.1.0"
-        edition = "2021"
+        edition = "2024"
 
         # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -380,7 +380,7 @@ custom-package = { path = "../path/to/crate" }
         let manifest_with_comment = r###"[package]
 name = "package-name"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -401,7 +401,7 @@ anyhow = { path = "../path/to/anyhow" }
         [package]
         name = "package-name"
         version = "0.1.0"
-        edition = "2021"
+        edition = "2024"
         '''
         "###);
     }
