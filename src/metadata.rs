@@ -33,7 +33,7 @@ pub fn crate_details(
     };
 
     Ok(Crate {
-        name: package.name.clone(),
+        name: package.name.to_string(),
         version: package.version.clone(),
     })
 }
