@@ -20,10 +20,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5.0.0
-      - uses: taiki-e/install-action@v2.61.2
+      - uses: taiki-e/install-action@v2.62.15
         with:
           tool: cargo-hack
-      - uses: Swatinem/rust-cache@v2.8.0
+      - uses: Swatinem/rust-cache@v2.8.1
       - name: build
         run: cargo hack build --feature-powerset
   test:
@@ -34,10 +34,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5.0.0
-      - uses: taiki-e/install-action@v2.61.2
+      - uses: taiki-e/install-action@v2.62.15
         with:
           tool: cargo-hack
-      - uses: Swatinem/rust-cache@v2.8.0
+      - uses: Swatinem/rust-cache@v2.8.1
       - name: test
         run: cargo hack test --feature-powerset --exclude-features failing_tests
   clippy:
@@ -49,21 +49,21 @@ jobs:
         with:
           toolchain: stable
           components: clippy
-      - uses: Swatinem/rust-cache@v2.8.0
+      - uses: Swatinem/rust-cache@v2.8.1
       - name: clippy
         run: cargo clippy --all-features --all-targets --no-deps
   fmt:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5.0.0
-      - uses: Swatinem/rust-cache@v2.8.0
+      - uses: Swatinem/rust-cache@v2.8.1
       - name: fmt
         run: cargo fmt --check
   doc:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5.0.0
-      - uses: Swatinem/rust-cache@v2.8.0
+      - uses: Swatinem/rust-cache@v2.8.1
       - name: doc
         run: cargo doc --all-features
   # minimal:
@@ -81,7 +81,7 @@ jobs:
   #         toolchain: nightly
   #     - name: rustup default stable
   #       run: rustup default stable
-  #     - uses: Swatinem/rust-cache@v2.8.0
+  #     - uses: Swatinem/rust-cache@v2.8.1
   #     - name: cargo update -Zminimal-versions
   #       run: cargo +nightly update -Zminimal-versions
   #     - name: cargo check
@@ -96,8 +96,8 @@ jobs:
       uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
       with:
         toolchain: stable
-    - uses: Swatinem/rust-cache@v2.8.0
-    - uses: taiki-e/install-action@v2.61.2
+    - uses: Swatinem/rust-cache@v2.8.1
+    - uses: taiki-e/install-action@v2.62.15
       with:
         tool: cargo-hack
     - name: Default features
@@ -111,6 +111,6 @@ jobs:
       uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
       with:
         toolchain: stable
-    - uses: Swatinem/rust-cache@v2.8.0
+    - uses: Swatinem/rust-cache@v2.8.1
     - name: "Is lockfile updated?"
       run: cargo update --workspace --locked
