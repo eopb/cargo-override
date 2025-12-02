@@ -20,20 +20,20 @@ repository = "https://github.com/eopb/cargo-override"
 failing_tests = []
 
 [dependencies]
-anyhow = "1.0.99"
-camino = "1.1.12"
+anyhow = "1.0.100"
+camino = "1.2.1"
 cargo = "0.90.0"
-cargo_metadata = "0.22"
+cargo_metadata = "0.23"
 cargo-util-schemas = "0.9.0"
-clap = { version = "4.5.47", features = ["derive"] }
-fs-err = "3.1.1"
+clap = { version = "4.5.53", features = ["derive"] }
+fs-err = "3.2.0"
 home = "0.5.11"
 pathdiff = "0.2.3"
-semver = "1.0.26"
+semver = "1.0.27"
 serde = { version = "1.0.219", features = ["derive"] }
-toml_edit = "0.23.4"
+toml_edit = "0.23.7"
 url = "2.5.4"
-winnow = "0.7.4"
+winnow = "0.7.14"
 clap-cargo = "0.17.1"
 
 [dev-dependencies]
@@ -41,11 +41,11 @@ assert_cmd = "2.1.1"
 fake = "4.4.0"
 googletest = "0.14.2"
 hex = "0.4.3"
-insta = { version = "1.41.1", features = ["filters", "toml"] }
-serde_json = "1.0.143"
+insta = { version = "1.44.3", features = ["filters", "toml"] }
+serde_json = "1.0.145"
 sha2 = "0.10.9"
 strip-ansi-escapes = "0.2.1"
-tempfile = "3.22.0"
+tempfile = "3.23.0"
 test-case = "3.3.1"
 
 # Faster snapshotting https://insta.rs/docs/quickstart/#optional-faster-runs
