@@ -18,20 +18,20 @@ jobs:
 
     name: flake check
     steps:
-      - uses: actions/checkout@v5.0.0
+      - uses: actions/checkout@v6.0.1
         with:
           fetch-depth: 0
-      - uses: DeterminateSystems/nix-installer-action@v20
-      - uses: DeterminateSystems/flakehub-cache-action@v2
+      - uses: DeterminateSystems/nix-installer-action@v21
+      - uses: DeterminateSystems/flakehub-cache-action@v3
       - run: nix flake check -L --show-trace
   fmt:
     runs-on: ubuntu-latest
 
     name: nix fmt
     steps:
-      - uses: actions/checkout@v5.0.0
+      - uses: actions/checkout@v6.0.1
         with:
           fetch-depth: 0
-      - uses: DeterminateSystems/nix-installer-action@v20
-      - uses: DeterminateSystems/flakehub-cache-action@v2
+      - uses: DeterminateSystems/nix-installer-action@v21
+      - uses: DeterminateSystems/flakehub-cache-action@v3
       - run: nix run nixpkgs#nixfmt-rfc-style -- --check flake.nix
