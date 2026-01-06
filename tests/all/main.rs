@@ -119,9 +119,7 @@ fn patch_transitive_on_registry() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @r###"
-    Patched dependency "anyhow" on registry "private-registry"
-    "###);
+    insta::assert_snapshot!(stderr, @r#"Patched dependency "anyhow" on registry "private-registry""#);
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -234,9 +232,7 @@ fn patch_transitive() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @r###"
-    Patched dependency "anyhow" on registry "crates-io"
-    "###);
+    insta::assert_snapshot!(stderr, @r#"Patched dependency "anyhow" on registry "crates-io""#);
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -300,9 +296,7 @@ fn patch_exists() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @r###"
-    Patched dependency "anyhow" on registry "crates-io"
-    "###);
+    insta::assert_snapshot!(stderr, @r#"Patched dependency "anyhow" on registry "crates-io""#);
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -386,9 +380,7 @@ fn patch_uses_workspace_version_inheritance() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @r###"
-    Patched dependency "anyhow" on registry "crates-io"
-    "###);
+    insta::assert_snapshot!(stderr, @r#"Patched dependency "anyhow" on registry "crates-io""#);
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -472,9 +464,7 @@ fn project_is_workspace() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @r###"
-    Patched dependency "anyhow" on registry "crates-io"
-    "###);
+    insta::assert_snapshot!(stderr, @r#"Patched dependency "anyhow" on registry "crates-io""#);
 
     let manifest = fs::read_to_string(workspace_folder_manifest_path).unwrap();
 
@@ -539,9 +529,7 @@ fn patch_manifest_in_subdir() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @r###"
-    Patched dependency "anyhow" on registry "crates-io"
-    "###);
+    insta::assert_snapshot!(stderr, @r#"Patched dependency "anyhow" on registry "crates-io""#);
 
     let manifest = fs::read_to_string(project_manifest_path).unwrap();
 
@@ -613,9 +601,7 @@ fn patch_absolute_path() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @r###"
-    Patched dependency "anyhow" on registry "crates-io"
-    "###);
+    insta::assert_snapshot!(stderr, @r#"Patched dependency "anyhow" on registry "crates-io""#);
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -696,9 +682,7 @@ fn patch_version_incompatible_fails(dependency_version: &str, patch_version: &st
 
     insta::allow_duplicates! {
         insta::assert_snapshot!(stdout, @"");
-        insta::assert_snapshot!(stderr, @r###"
-        error: patch could not be applied because version is incompatible
-        "###
+        insta::assert_snapshot!(stderr, @"error: patch could not be applied because version is incompatible"
         );
     }
 
@@ -750,9 +734,7 @@ fn patch_version_incompatible_force_succeeds() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @r###"
-    Patched dependency "redact" on registry "crates-io"
-    "###);
+    insta::assert_snapshot!(stderr, @r#"Patched dependency "redact" on registry "crates-io""#);
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -860,9 +842,7 @@ fn patch_exists_put_project_does_not_depend_on_it() {
     assert.failure();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @r###"
-    error: Unable to find dependency on crate "patch_package"
-    "###);
+    insta::assert_snapshot!(stderr, @r#"error: Unable to find dependency on crate "patch_package""#);
 
     let manifest_after = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -901,12 +881,12 @@ fn missing_manifest() {
         (r"C\:\\Users\\.*\\Temp\\\.tmp[0-9a-zA-Z]*", "[TEMPDIR]"),
     ]}, {
         insta::assert_snapshot!(stdout, @"");
-        insta::assert_snapshot!(stderr, @r#"
+        insta::assert_snapshot!(stderr, @"
         error: Unable to run `cargo metadata`
 
         Caused by:
             `cargo metadata` exited with an error: error: could not find `Cargo.toml` in `[TEMPDIR]` or any parent directory
-        "#);
+        ");
     });
 }
 
@@ -940,13 +920,13 @@ fn patch_path_doesnt_exist() {
         (r"(No such file or directory)?(The directory name is invalid\.)? \(os error .*\)", "[OSERROR]"),
     ]}, {
         insta::assert_snapshot!(stdout, @"");
-        insta::assert_snapshot!(stderr, @r#"
+        insta::assert_snapshot!(stderr, @"
         error: Unable to run `cargo metadata`
 
         Caused by:
             0: failed to start `cargo metadata`: [OSERROR]
             1: [OSERROR]
-        "#);
+        ");
     });
 }
 
@@ -987,10 +967,10 @@ fn patch_manifest_doesnt_exist() {
         (r"\/C\:\/Users\/.*\/Temp\/\.tmp[0-9a-zA-Z]*", "[TEMPDIR]"),
     ]}, {
         insta::assert_snapshot!(stdout, @"");
-        insta::assert_snapshot!(stderr, @r#"
+        insta::assert_snapshot!(stderr, @"
         error: unable to determine registry name for `file://[TEMPDIR]`
                          provide it using the `--registry` flag
-        "#);
+        ");
     });
 }
 
@@ -1060,9 +1040,7 @@ fn patch_exists_alt_registry(setup: impl Fn(&Path)) {
 
     insta::allow_duplicates! {
         insta::assert_snapshot!(stdout, @"");
-        insta::assert_snapshot!(stderr, @r###"
-        Patched dependency "anyhow" on registry "private-registry"
-        "###);
+        insta::assert_snapshot!(stderr, @r#"Patched dependency "anyhow" on registry "private-registry""#);
     }
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
@@ -1142,10 +1120,10 @@ fn patch_registry_mismatch_fails(setup: impl Fn(&Path)) {
             (patch_folder.as_str(), "[PATCH]"),
         ]}, {
             insta::assert_snapshot!(stdout, @"");
-            insta::assert_snapshot!(stderr, @r###"
+            insta::assert_snapshot!(stderr, @"
             error: user provided registry `another-registry` with the `--registry` flag but dependency `[PATCH]` uses registry `private-registry`. 
                                  To use the registry, you passed, use `--force`
-            "###);
+            ");
         })
     };
 
@@ -1203,9 +1181,7 @@ fn patch_registry_mismatch_force_succeeds(setup: impl Fn(&Path)) {
 
     insta::allow_duplicates! {
         insta::assert_snapshot!(stdout, @"");
-        insta::assert_snapshot!(stderr, @r###"
-        Patched dependency "anyhow" on registry "another-registry"
-        "###);
+        insta::assert_snapshot!(stderr, @r#"Patched dependency "anyhow" on registry "another-registry""#);
     }
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
@@ -1277,9 +1253,7 @@ fn patch_exists_alt_registry_from_env() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr, @r###"
-    Patched dependency "anyhow" on registry "private-registry"
-    "###);
+    insta::assert_snapshot!(stderr, @r#"Patched dependency "anyhow" on registry "private-registry""#);
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -1342,9 +1316,7 @@ fn remove_override() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr,  @r###"
-    Removed package patch "anyhow"
-    "###);
+    insta::assert_snapshot!(stderr,  @r#"Removed package patch "anyhow""#);
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
@@ -1455,9 +1427,7 @@ fn remove_override_renamed_patch() {
     assert.success();
 
     insta::assert_snapshot!(stdout, @"");
-    insta::assert_snapshot!(stderr,  @r###"
-    Removed package patch "anyhow-main"
-    "###);
+    insta::assert_snapshot!(stderr,  @r#"Removed package patch "anyhow-main""#);
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
