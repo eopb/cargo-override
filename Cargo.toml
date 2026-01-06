@@ -37,7 +37,7 @@ winnow = "0.7.4"
 clap-cargo = "0.17.1"
 
 [dev-dependencies]
-assert_cmd = "2.0.17"
+assert_cmd = "2.1.1"
 fake = "4.4.0"
 googletest = "0.14.2"
 hex = "0.4.3"
