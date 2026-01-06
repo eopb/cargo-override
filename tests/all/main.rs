@@ -16,7 +16,7 @@ use std::{
 
 use cargo_override::CARGO_TOML;
 
-use assert_cmd::Command;
+use assert_cmd::{Command, cargo::cargo_bin_cmd};
 use fake::{Fake, Faker};
 use fs_err as fs;
 use googletest::expect_eq;
@@ -1505,7 +1505,8 @@ fn override_path(
     working_dir: &Path,
     args: impl Fn(&mut Command) -> &mut Command,
 ) -> Command {
-    let mut cmd = Command::cargo_bin("cargo-override").unwrap();
+    let mut cmd = cargo_bin_cmd!("cargo-override");
+
     args(
         cmd.current_dir(working_dir)
             .arg("override")
@@ -1523,7 +1524,7 @@ fn rm_override(
     working_dir: &Path,
     args: impl Fn(&mut Command) -> &mut Command,
 ) -> Command {
-    let mut cmd = Command::cargo_bin("cargo-override").unwrap();
+    let mut cmd = cargo_bin_cmd!("cargo-override");
 
     args(
         cmd.current_dir(working_dir)

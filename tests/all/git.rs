@@ -5,7 +5,7 @@ use super::manifest::{Dependency, Header, Manifest, Target};
 
 use std::path::Path;
 
-use assert_cmd::Command;
+use assert_cmd::{Command, cargo::cargo_bin_cmd};
 use fs_err as fs;
 use googletest::expect_eq;
 use tempfile::TempDir;
@@ -275,7 +275,8 @@ fn override_redact_crate(
     working_dir: &Path,
     args: impl Fn(&mut Command) -> &mut Command,
 ) -> Command {
-    let mut cmd = Command::cargo_bin("cargo-override").unwrap();
+    let mut cmd = cargo_bin_cmd!("cargo-override");
+
     args(
         cmd.current_dir(working_dir)
             .arg("override")
