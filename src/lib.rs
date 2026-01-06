@@ -119,18 +119,18 @@ fn add_override(
             ),
         }
     } else {
-        if let Some(registry) = registry_hint {
-            if registry != DEFAULT_REGISTRY {
-                bail!(
-                    "user provided registry `{}` with the `--registry` flag \
+        if let Some(registry) = registry_hint
+            && registry != DEFAULT_REGISTRY
+        {
+            bail!(
+                "user provided registry `{}` with the `--registry` flag \
                      but dependency `{}` \
                      uses the default registry `{}`",
-                    registry,
-                    dependency.name,
-                    DEFAULT_REGISTRY,
-                )
-            };
-        }
+                registry,
+                dependency.name,
+                DEFAULT_REGISTRY,
+            )
+        };
         DEFAULT_REGISTRY.to_owned()
     };
 
