@@ -8,7 +8,6 @@ use checksum::Checksum;
 use manifest::{Dependency, Header, LocalPatch, Manifest, Patch, PatchType, Target};
 
 use std::{
-    env,
     fs::File,
     io::Write,
     path,

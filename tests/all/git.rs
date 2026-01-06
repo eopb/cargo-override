@@ -3,7 +3,7 @@
 use super::create_cargo_manifest;
 use super::manifest::{Dependency, Header, Manifest, Target};
 
-use std::{env, path::Path};
+use std::path::Path;
 
 use assert_cmd::Command;
 use fs_err as fs;
