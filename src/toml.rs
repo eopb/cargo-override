@@ -254,7 +254,7 @@ custom-package = { path = "../path/to/crate" }
         })
         .unwrap();
 
-        insta::assert_toml_snapshot!(manifest_after_adding, @r###"
+        insta::assert_toml_snapshot!(manifest_after_adding, @r#"
         '''
         [package]
         name = "package-name"
@@ -277,7 +277,7 @@ custom-package = { path = "../path/to/crate" }
         [patch."https://link/to/crate"]
         custom-package = { path = "../path/to/crate" }
         '''
-        "###);
+        "#);
     }
 
     #[test]
@@ -289,7 +289,7 @@ custom-package = { path = "../path/to/crate" }
 
         assert!(removed);
 
-        insta::assert_toml_snapshot!(manifest_after_removing, @r###"
+        insta::assert_toml_snapshot!(manifest_after_removing, @r#"
         '''
         [package]
         name = "package-name"
@@ -297,7 +297,7 @@ custom-package = { path = "../path/to/crate" }
         edition = "2024"
 
         # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-        
+
         [dependencies]
         anyhow = "1.0.40"
         pathdiff = "0.2.1"
@@ -307,7 +307,7 @@ custom-package = { path = "../path/to/crate" }
         anyhow = { git = "https://github.com/dtolnay/anyhow.git" }
         anyhow-dev = { path = "../path/to/anyhow" }
         '''
-        "###);
+        "#);
 
         let (manifest_after_removing, removed) = modify_manifest(TEST_MANIFEST, |manifest_table| {
             Manifest::remove_patch_from_manifest(manifest_table, "anyhow-dev")
@@ -316,7 +316,7 @@ custom-package = { path = "../path/to/crate" }
 
         assert!(removed);
 
-        insta::assert_toml_snapshot!(manifest_after_removing, @r###"
+        insta::assert_toml_snapshot!(manifest_after_removing, @r#"
         '''
         [package]
         name = "package-name"
@@ -324,7 +324,7 @@ custom-package = { path = "../path/to/crate" }
         edition = "2024"
 
         # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-        
+
         [dependencies]
         anyhow = "1.0.40"
         pathdiff = "0.2.1"
@@ -337,7 +337,7 @@ custom-package = { path = "../path/to/crate" }
         [patch."https://link/to/crate"]
         custom-package = { path = "../path/to/crate" }
         '''
-        "###);
+        "#);
     }
 
     #[test]
@@ -349,7 +349,7 @@ custom-package = { path = "../path/to/crate" }
 
         assert!(!removed);
 
-        insta::assert_toml_snapshot!(manifest_after_removing, @r###"
+        insta::assert_toml_snapshot!(manifest_after_removing, @r#"
         '''
         [package]
         name = "package-name"
@@ -371,7 +371,7 @@ custom-package = { path = "../path/to/crate" }
         [patch."https://link/to/crate"]
         custom-package = { path = "../path/to/crate" }
         '''
-        "###);
+        "#);
     }
 
     #[test]
@@ -396,13 +396,13 @@ anyhow = { path = "../path/to/anyhow" }
 
         assert!(removed);
 
-        insta::assert_toml_snapshot!(manifest_after_removing, @r###"
+        insta::assert_toml_snapshot!(manifest_after_removing, @r#"
         '''
         [package]
         name = "package-name"
         version = "0.1.0"
         edition = "2024"
         '''
-        "###);
+        "#);
     }
 }
