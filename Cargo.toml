@@ -25,9 +25,9 @@ camino = "1.2.1"
 cargo = "0.93.0"
 cargo_metadata = "0.23"
 cargo-util-schemas = "0.10.2"
-clap = { version = "4.5.53", features = ["derive"] }
+clap = { version = "4.5.56", features = ["derive"] }
 fs-err = "3.2.0"
-home = "0.5.11"
+home = "0.5.12"
 pathdiff = "0.2.3"
 semver = "1.0.27"
 serde = { version = "1.0.219", features = ["derive"] }
@@ -37,12 +37,12 @@ winnow = "0.7.14"
 clap-cargo = "0.18.3"
 
 [dev-dependencies]
-assert_cmd = "2.1.1"
+assert_cmd = "2.1.2"
 fake = "4.4.0"
 googletest = "0.14.2"
 hex = "0.4.3"
-insta = { version = "1.44.3", features = ["filters", "toml"] }
-serde_json = "1.0.145"
+insta = { version = "1.46.2", features = ["filters", "toml"] }
+serde_json = "1.0.149"
 sha2 = "0.10.9"
 strip-ansi-escapes = "0.2.1"
 tempfile = "3.23.0"
