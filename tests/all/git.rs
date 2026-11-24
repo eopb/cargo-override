@@ -40,8 +40,7 @@ fn git_patch() {
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
-    insta::assert_toml_snapshot!(manifest, @r#"
-    '''
+    insta::assert_snapshot!(manifest, @r#"
     [package]
     name = "package-name"
     version = "0.1.0"
@@ -58,7 +57,6 @@ fn git_patch() {
 
     [patch.crates-io]
     redact = { git = "https://github.com/eopb/redact" }
-    '''
     "#);
 }
 
@@ -93,8 +91,7 @@ fn git_patch_branch() {
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
-    insta::assert_toml_snapshot!(manifest, @r#"
-    '''
+    insta::assert_snapshot!(manifest, @r#"
     [package]
     name = "package-name"
     version = "0.1.0"
@@ -111,7 +108,6 @@ fn git_patch_branch() {
 
     [patch.crates-io]
     redact = { git = "https://github.com/eopb/redact", branch = "main" }
-    '''
     "#);
 }
 
@@ -146,8 +142,7 @@ fn git_patch_tag() {
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
-    insta::assert_toml_snapshot!(manifest, @r#"
-    '''
+    insta::assert_snapshot!(manifest, @r#"
     [package]
     name = "package-name"
     version = "0.1.0"
@@ -164,7 +159,6 @@ fn git_patch_tag() {
 
     [patch.crates-io]
     redact = { git = "https://github.com/eopb/redact", tag = "v0.1.10" }
-    '''
     "#);
 }
 
@@ -202,8 +196,7 @@ fn git_patch_rev() {
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
-    insta::assert_toml_snapshot!(manifest, @r#"
-    '''
+    insta::assert_snapshot!(manifest, @r#"
     [package]
     name = "package-name"
     version = "0.1.0"
@@ -220,7 +213,6 @@ fn git_patch_rev() {
 
     [patch.crates-io]
     redact = { git = "https://github.com/eopb/redact", rev = "931019c4d39af01a7ecfcb090f40f64bcfb1f295" }
-    '''
     "#);
 }
 
