@@ -254,8 +254,7 @@ custom-package = { path = "../path/to/crate" }
         })
         .unwrap();
 
-        insta::assert_toml_snapshot!(manifest_after_adding, @r#"
-        '''
+        insta::assert_snapshot!(manifest_after_adding, @r#"
         [package]
         name = "package-name"
         version = "0.1.0"
@@ -276,7 +275,6 @@ custom-package = { path = "../path/to/crate" }
         # This is a patch for a custom package
         [patch."https://link/to/crate"]
         custom-package = { path = "../path/to/crate" }
-        '''
         "#);
     }
 
@@ -289,8 +287,7 @@ custom-package = { path = "../path/to/crate" }
 
         assert!(removed);
 
-        insta::assert_toml_snapshot!(manifest_after_removing, @r#"
-        '''
+        insta::assert_snapshot!(manifest_after_removing, @r#"
         [package]
         name = "package-name"
         version = "0.1.0"
@@ -306,7 +303,6 @@ custom-package = { path = "../path/to/crate" }
         [patch.crates-io]
         anyhow = { git = "https://github.com/dtolnay/anyhow.git" }
         anyhow-dev = { path = "../path/to/anyhow" }
-        '''
         "#);
 
         let (manifest_after_removing, removed) = modify_manifest(TEST_MANIFEST, |manifest_table| {
@@ -316,8 +312,7 @@ custom-package = { path = "../path/to/crate" }
 
         assert!(removed);
 
-        insta::assert_toml_snapshot!(manifest_after_removing, @r#"
-        '''
+        insta::assert_snapshot!(manifest_after_removing, @r#"
         [package]
         name = "package-name"
         version = "0.1.0"
@@ -336,7 +331,6 @@ custom-package = { path = "../path/to/crate" }
         # This is a patch for a custom package
         [patch."https://link/to/crate"]
         custom-package = { path = "../path/to/crate" }
-        '''
         "#);
     }
 
@@ -349,8 +343,7 @@ custom-package = { path = "../path/to/crate" }
 
         assert!(!removed);
 
-        insta::assert_toml_snapshot!(manifest_after_removing, @r#"
-        '''
+        insta::assert_snapshot!(manifest_after_removing, @r#"
         [package]
         name = "package-name"
         version = "0.1.0"
@@ -370,7 +363,6 @@ custom-package = { path = "../path/to/crate" }
         # This is a patch for a custom package
         [patch."https://link/to/crate"]
         custom-package = { path = "../path/to/crate" }
-        '''
         "#);
     }
 
@@ -396,13 +388,11 @@ anyhow = { path = "../path/to/anyhow" }
 
         assert!(removed);
 
-        insta::assert_toml_snapshot!(manifest_after_removing, @r#"
-        '''
+        insta::assert_snapshot!(manifest_after_removing, @r#"
         [package]
         name = "package-name"
         version = "0.1.0"
         edition = "2024"
-        '''
         "#);
     }
 }

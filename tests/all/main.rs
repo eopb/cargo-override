@@ -123,8 +123,7 @@ fn patch_transitive_on_registry() {
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
-    insta::assert_toml_snapshot!(manifest, @r#"
-    '''
+    insta::assert_snapshot!(manifest, @r#"
     [package]
     name = "package_name"
     version = "0.1.0"
@@ -141,7 +140,6 @@ fn patch_transitive_on_registry() {
 
     [patch.private-registry]
     anyhow = { path = "anyhow" }
-    '''
     "#);
 }
 
@@ -236,8 +234,7 @@ fn patch_transitive() {
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
-    insta::assert_toml_snapshot!(manifest, @r#"
-    '''
+    insta::assert_snapshot!(manifest, @r#"
     [package]
     name = "package_name"
     version = "0.1.0"
@@ -254,7 +251,6 @@ fn patch_transitive() {
 
     [patch.crates-io]
     anyhow = { path = "anyhow" }
-    '''
     "#);
 }
 
@@ -300,8 +296,7 @@ fn patch_exists() {
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
-    insta::assert_toml_snapshot!(manifest, @r#"
-    '''
+    insta::assert_snapshot!(manifest, @r#"
     [package]
     name = "package-name"
     version = "0.1.0"
@@ -318,7 +313,6 @@ fn patch_exists() {
 
     [patch.crates-io]
     anyhow = { path = "anyhow" }
-    '''
     "#);
 }
 
@@ -384,8 +378,7 @@ fn patch_uses_workspace_version_inheritance() {
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
-    insta::assert_toml_snapshot!(manifest, @r#"
-    '''
+    insta::assert_snapshot!(manifest, @r#"
     [package]
     name = "package-name"
     version = "0.1.0"
@@ -402,7 +395,6 @@ fn patch_uses_workspace_version_inheritance() {
 
     [patch.crates-io]
     anyhow = { path = "workspace/anyhow" }
-    '''
     "#);
 }
 
@@ -471,15 +463,13 @@ fn project_is_workspace() {
     insta::with_settings!({filters => vec![
         (r#"[\"\']\.\.[\/\\]anyhow[\"\']"#, "[PATH]"),
     ]}, {
-        insta::assert_toml_snapshot!(manifest, @r#"
-        '''
+        insta::assert_snapshot!(manifest, @r#"
 
                 [workspace]
                 members = ["subdir"]
 
         [patch.crates-io]
         anyhow = { path = [PATH] }
-                '''
         "#);
     });
 }
@@ -536,8 +526,7 @@ fn patch_manifest_in_subdir() {
     insta::with_settings!({filters => vec![
         (r#"[\"\']\.\.[\/\\]anyhow[\"\']"#, "[PATH]"),
     ]}, {
-        insta::assert_toml_snapshot!(manifest, @r#"
-        '''
+        insta::assert_snapshot!(manifest, @r#"
         [package]
         name = "package-name"
         version = "0.1.0"
@@ -554,7 +543,6 @@ fn patch_manifest_in_subdir() {
 
         [patch.crates-io]
         anyhow = { path = [PATH] }
-        '''
         "#);
     });
 }
@@ -611,8 +599,7 @@ fn patch_absolute_path() {
         (r"C\:\\Users\\.*\\Temp\\\.tmp.*\\", "[TEMPDIR]"),
         ("\'", "\""),
     ]}, {
-        insta::assert_toml_snapshot!(manifest, @r#"
-        """
+        insta::assert_snapshot!(manifest, @r#"
         [package]
         name = "package-name"
         version = "0.1.0"
@@ -629,7 +616,6 @@ fn patch_absolute_path() {
 
         [patch.crates-io]
         anyhow = { path = "[TEMPDIR]anyhow" }
-        """
         "#);
     });
 }
@@ -738,8 +724,7 @@ fn patch_version_incompatible_force_succeeds() {
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
-    insta::assert_toml_snapshot!(manifest, @r#"
-    '''
+    insta::assert_snapshot!(manifest, @r#"
     [package]
     name = "package-name"
     version = "0.1.0"
@@ -756,7 +741,6 @@ fn patch_version_incompatible_force_succeeds() {
 
     [patch.crates-io]
     redact = { path = "redact" }
-    '''
     "#);
 }
 
@@ -1046,8 +1030,7 @@ fn patch_exists_alt_registry(setup: impl Fn(&Path)) {
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
     insta::allow_duplicates! {
-        insta::assert_toml_snapshot!(manifest, @r#"
-        '''
+        insta::assert_snapshot!(manifest, @r#"
         [package]
         name = "package-name"
         version = "0.1.0"
@@ -1064,7 +1047,6 @@ fn patch_exists_alt_registry(setup: impl Fn(&Path)) {
 
         [patch.private-registry]
         anyhow = { path = "anyhow" }
-        '''
         "#);
     }
 }
@@ -1187,8 +1169,7 @@ fn patch_registry_mismatch_force_succeeds(setup: impl Fn(&Path)) {
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
     insta::allow_duplicates! {
-        insta::assert_toml_snapshot!(manifest, @r#"
-        '''
+        insta::assert_snapshot!(manifest, @r#"
         [package]
         name = "package-name"
         version = "0.1.0"
@@ -1205,7 +1186,6 @@ fn patch_registry_mismatch_force_succeeds(setup: impl Fn(&Path)) {
 
         [patch.another-registry]
         anyhow = { path = "anyhow" }
-        '''
         "#);
     }
 }
@@ -1258,8 +1238,7 @@ fn patch_exists_alt_registry_from_env() {
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
     insta::allow_duplicates! {
-        insta::assert_toml_snapshot!(manifest, @r#"
-        '''
+        insta::assert_snapshot!(manifest, @r#"
         [package]
         name = "package-name"
         version = "0.1.0"
@@ -1276,7 +1255,6 @@ fn patch_exists_alt_registry_from_env() {
 
         [patch.private-registry]
         anyhow = { path = "anyhow" }
-        '''
         "#);
     }
 }
@@ -1320,8 +1298,7 @@ fn remove_override() {
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
-    insta::assert_toml_snapshot!(manifest, @r#"
-    '''
+    insta::assert_snapshot!(manifest, @r#"
     [package]
     name = "package_name"
     version = "0.1.0"
@@ -1335,7 +1312,6 @@ fn remove_override() {
     [[bin]]
     name = "package_name"
     path = "src/main.rs"
-    '''
     "#);
 }
 
@@ -1371,8 +1347,7 @@ fn remove_override_no_patch_exists() {
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
-    insta::assert_toml_snapshot!(manifest, @r#"
-    '''
+    insta::assert_snapshot!(manifest, @r#"
     [package]
     name = "package_name"
     version = "0.1.0"
@@ -1386,7 +1361,6 @@ fn remove_override_no_patch_exists() {
     [[bin]]
     name = "package_name"
     path = "src/main.rs"
-    '''
     "#);
 }
 
@@ -1431,8 +1405,7 @@ fn remove_override_renamed_patch() {
 
     let manifest = fs::read_to_string(working_dir_manifest_path).unwrap();
 
-    insta::assert_toml_snapshot!(manifest, @r#"
-    '''
+    insta::assert_snapshot!(manifest, @r#"
     [package]
     name = "package_name"
     version = "0.1.0"
@@ -1446,7 +1419,6 @@ fn remove_override_renamed_patch() {
     [[bin]]
     name = "package_name"
     path = "src/main.rs"
-    '''
     "#);
 }
 

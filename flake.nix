@@ -27,7 +27,7 @@
 
         darwinDeps =
           with pkgs;
-          lib.optionals stdenv.isDarwin [
+          lib.optionals stdenv.hostPlatform.isDarwin [
             libiconv
           ];
 
@@ -48,6 +48,8 @@
               with pkgs;
               [
                 libssh2
+                libgit2
+                sqlite
               ]
               ++ darwinDeps;
 
